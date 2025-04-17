@@ -15,6 +15,17 @@ void Game::initVariables()
 	this->mouseHeld = false;
 	this->shotsFired = 0;
 	this->shotsHit = 0;
+	this->accuracy = 0.f;
+	this->bestAccuracy = 0.f;
+	this->highScore = 0;
+
+	this->accuracyBarBack.setSize(sf::Vector2f(200.f, 20.f));
+	this->accuracyBarBack.setFillColor(sf::Color(50, 50, 50, 200));
+	this->accuracyBarBack.setPosition(0.f, 160.f);
+
+	this->accuracyBar.setSize(sf::Vector2f(200.f, 20.f));
+	this->accuracyBar.setFillColor(sf::Color::Green);
+	this->accuracyBar.setPosition(0.f, 160.f);
 
 	//Game objects
 	this->enemy.setPosition(0.f, 0.f);
@@ -22,6 +33,18 @@ void Game::initVariables()
 	this->enemy.setFillColor(sf::Color::Cyan);
 	//this->enemy.setOutlineColor(sf::Color::Green);
 	//this->enemy.setOutlineThickness(1.f);
+
+	//Load high score on startup
+	std::ifstream inFile("highscore.txt");
+	if (inFile.is_open())
+	{
+		inFile >> this->highScore;
+		inFile.close();
+	}
+	else
+	{
+		this->highScore = 0; // default if file doesn't exist
+	}
 }
 
 void Game::initWindow()
@@ -174,12 +197,33 @@ void Game::updateText()
 {
 	std::stringstream ss;
 
-	ss << "Points: " << this->points << "\n"
-	<< "Health: " << this->health << "\n";
-	float accuracy = (this->shotsFired > 0) ?
+	this->accuracy = (this->shotsFired > 0) ?
 		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
 
-	ss << "Accuracy: " << static_cast<int>(accuracy) << "%\n";
+	ss << "Points: " << this->points << "\n"
+		<< "Health: " << this->health << "\n"
+		<< "Accuracy: " << static_cast<int>(this->accuracy) << "%\n"
+		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
+		<< "High Score: " << this->highScore << "\n";
+
+	float percent = (this->accuracy / 100.f);
+	this->accuracyBar.setSize(sf::Vector2f(200.f * percent, 20.f));
+
+	if (this->accuracy > 80.f)
+	{
+		this->accuracyBar.setFillColor(sf::Color::Green);
+		this->uiText.setFillColor(sf::Color::Green);
+	}
+	else if (this->accuracy > 50.f)
+	{
+		this->accuracyBar.setFillColor(sf::Color::Yellow);
+		this->uiText.setFillColor(sf::Color::Yellow);
+	}
+	else
+	{
+		this->accuracyBar.setFillColor(sf::Color::Red);
+		this->uiText.setFillColor(sf::Color::Red);
+	}
 
 	this->uiText.setString(ss.str());
 }
@@ -230,8 +274,7 @@ void Game::updateEnemies()
 		{
 			this->mouseHeld = true;
 			this->shotsFired++;
-			bool deleted = false;
-			for (size_t i = 0; i < this->enemies.size() && deleted == false; i++)
+			for (size_t i = 0; i < this->enemies.size(); i++)
 			{
 				if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
 				{
@@ -251,8 +294,8 @@ void Game::updateEnemies()
 					std::cout << "Points: " << this->points << "\n";
 
 					//Delete the enemy
-					deleted = true;
 					this->enemies.erase(this->enemies.begin() + i);
+					break; // Exit the loop once the enemy is hit
 				}
 			}
 		}
@@ -274,11 +317,32 @@ void Game::update()
 		this->updateText();
 
 		this->updateEnemies();
+
 	}
 
 	//Endgame condition
 	if (this->health <= 0)
+	{
 		this->endGame = true;
+
+		// Update best accuracy
+		if (this->accuracy > this->bestAccuracy)
+			this->bestAccuracy = this->accuracy;
+
+		// Check if the player beat the high score
+		if (this->points > this->highScore)
+		{
+			this->highScore = this->points;
+
+			// Save new high score to file
+			std::ofstream outFile("highscore.txt");
+			if (outFile.is_open())
+			{
+				outFile << this->highScore;
+				outFile.close();
+			}
+		}
+	}
 }
 
 void Game::renderText(sf::RenderTarget& target)
@@ -314,6 +378,10 @@ void Game::render()
 	this->renderEnemies(*this->window);
 
 	this->renderText(*this->window);
+
+	//draw accuracy bar before display()
+	this->window->draw(this->accuracyBarBack);
+	this->window->draw(this->accuracyBar);
 
 	this->window->display();
 }

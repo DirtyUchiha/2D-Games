@@ -4,6 +4,7 @@
 #include <vector>
 #include <ctime>
 #include <sstream>
+#include <fstream>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
@@ -45,10 +46,16 @@ private:
 	bool mouseHeld;
 	unsigned shotsFired;
 	unsigned shotsHit;
+	float accuracy;
+	float bestAccuracy;
+	unsigned highScore;
+
 
 	//Game objects
 	std::vector<sf::RectangleShape> enemies;
 	sf::RectangleShape enemy;
+	sf::RectangleShape accuracyBarBack;
+	sf::RectangleShape accuracyBar;
 
 	//Private functions
 	void initVariables();
