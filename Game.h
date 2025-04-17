@@ -56,6 +56,7 @@ private:
 	sf::RectangleShape enemy;
 	sf::RectangleShape accuracyBarBack;
 	sf::RectangleShape accuracyBar;
+	std::vector<sf::RectangleShape> healthBlocks;
 
 	//Private functions
 	void initVariables();

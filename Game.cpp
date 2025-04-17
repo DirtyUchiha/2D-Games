@@ -55,7 +55,7 @@ void Game::initWindow()
 	//this->videoMode.getDesktopMode; // optional if you dont want a auto custom window
 	this->window = new sf::RenderWindow(this->videoMode, "Game 1", sf::Style::Titlebar | sf::Style::Close);
 
-	this->window->setFramerateLimit(100);
+	this->window->setFramerateLimit(80);
 }
 
 void Game::initFonts()
@@ -112,30 +112,33 @@ const bool Game::getEndGame() const
 //Functions
 void Game::spawnEnemy()
 {
-	/*
-		@return void
-
-		Spawns enemies and sets their types and colors. Spawns them at random positions
-		-Sets a random type (diff)
-		-Sets a random position.
-		-Sets a random color
-		-Adds enemy to the vector
-	*/
-
 	this->enemy.setPosition(
 		static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - this->enemy.getSize().x)),
 		0.f
 	);
 
 	//Randomize enemy type
-	int type = rand() % 5;
+	int type = rand() % 6; // increase range to 6 to include health block
+	if (type == 5)
+	{
+		// Health block
+		sf::RectangleShape healthBlock;
+		healthBlock.setSize(sf::Vector2f(30.f, 30.f));
+		healthBlock.setFillColor(sf::Color::White);
+		healthBlock.setPosition(
+			static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - 30)),
+			0.f
+		);
+		this->healthBlocks.push_back(healthBlock);
+		return; // Don't spawn a regular enemy this time
+	}
 
 	switch (type)
 	{
 	case 0:
 		this->enemy.setSize(sf::Vector2f(10.f, 10.f));
 		this->enemy.setFillColor(sf::Color::Magenta);
-			break;
+		break;
 	case 1:
 		this->enemy.setSize(sf::Vector2f(30.f, 30.f));
 		this->enemy.setFillColor(sf::Color::Blue);
@@ -152,15 +155,9 @@ void Game::spawnEnemy()
 		this->enemy.setSize(sf::Vector2f(100.f, 100.f));
 		this->enemy.setFillColor(sf::Color::Green);
 		break;
-	default:
-		this->enemy.setSize(sf::Vector2f(100.f, 100.f));
-		this->enemy.setFillColor(sf::Color::Yellow);
-		break;
 	}
 
-	//Spawn the enemy
 	this->enemies.push_back(this->enemy);
-
 }
 
 void Game::pollEvents()
@@ -253,11 +250,21 @@ void Game::updateEnemies()
 			this->enemySpawnTimer += 1.f;
 	}
 
-	//Moving and updating enemies
+	// Health blocks
+	for (size_t i = 0; i < this->healthBlocks.size(); i++)
+	{
+		this->healthBlocks[i].move(0.f, 4.f);
+
+		if (this->healthBlocks[i].getPosition().y > this->window->getSize().y)
+		{
+			this->healthBlocks.erase(this->healthBlocks.begin() + i);
+			i--;
+		}
+	}
+
+	// Enemies
 	for (int i = 0; i < this->enemies.size(); i++)
 	{
-		bool deleted = false;
-
 		this->enemies[i].move(0.f, 5.f);
 
 		if (this->enemies[i].getPosition().y > this->window->getSize().y)
@@ -267,7 +274,6 @@ void Game::updateEnemies()
 			std::cout << "Health: " << this->health << "\n";
 		}
 	}
-
 	//Check if clicked on
 	if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
 	{
@@ -275,6 +281,19 @@ void Game::updateEnemies()
 		{
 			this->mouseHeld = true;
 			this->shotsFired++;
+
+			// Check health blocks
+			for (size_t i = 0; i < this->healthBlocks.size(); i++)
+			{
+				if (this->healthBlocks[i].getGlobalBounds().contains(this->mousePosView))
+				{
+					this->health = std::min(this->health + 1, 20); // Heal max 20
+					std::cout << "Healed! Health: " << this->health << "\n";
+					this->healthBlocks.erase(this->healthBlocks.begin() + i);
+					return; // skip checking other enemies if you hit a health block
+				}
+			}
+
 			for (size_t i = 0; i < this->enemies.size(); i++)
 			{
 				if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
@@ -358,6 +377,35 @@ void Game::renderEnemies(sf::RenderTarget& target)
 	for (auto &e : this->enemies)
 	{
 		target.draw(e);
+	}
+
+	// Draw health blocks
+	for (auto& h : this->healthBlocks)
+	{
+		target.draw(h);
+
+		// Create plus sign text
+		sf::Text plusText;
+		plusText.setFont(this->font);
+		plusText.setString("+");
+		plusText.setCharacterSize(40);
+		plusText.setFillColor(sf::Color::Red);
+
+		// Center the plus sign on the health block
+		sf::FloatRect hBounds = h.getGlobalBounds();
+		sf::FloatRect tBounds = plusText.getGlobalBounds();
+
+		//Set origin of the text to its center
+		plusText.setOrigin(tBounds.width / 2.f, tBounds.height / 2.f);
+
+		//Set the position of the text to the center of the health block
+		plusText.setPosition(
+			hBounds.left + hBounds.width / 2.1f,   // Horizontal center
+			hBounds.top + hBounds.height / 80.f     // Vertical center
+		);
+
+		//draw the plus sign text
+		target.draw(plusText);
 	}
 }
 
