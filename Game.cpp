@@ -38,12 +38,13 @@ void Game::initVariables()
 	std::ifstream inFile("highscore.txt");
 	if (inFile.is_open())
 	{
-		inFile >> this->highScore;
+		inFile >> this->highScore >> this->bestAccuracy;
 		inFile.close();
 	}
 	else
 	{
-		this->highScore = 0; // default if file doesn't exist
+		this->highScore = 0;
+		this->bestAccuracy = 0.f;
 	}
 }
 
@@ -54,7 +55,7 @@ void Game::initWindow()
 	//this->videoMode.getDesktopMode; // optional if you dont want a auto custom window
 	this->window = new sf::RenderWindow(this->videoMode, "Game 1", sf::Style::Titlebar | sf::Style::Close);
 
-	this->window->setFramerateLimit(60);
+	this->window->setFramerateLimit(100);
 }
 
 void Game::initFonts()
@@ -338,7 +339,7 @@ void Game::update()
 			std::ofstream outFile("highscore.txt");
 			if (outFile.is_open())
 			{
-				outFile << this->highScore;
+				outFile << this->highScore << " " << this->bestAccuracy;
 				outFile.close();
 			}
 		}
