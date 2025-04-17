@@ -43,6 +43,8 @@ private:
 	float enemySpawnTimerMax;
 	int maxEnemies;
 	bool mouseHeld;
+	unsigned shotsFired;
+	unsigned shotsHit;
 
 	//Game objects
 	std::vector<sf::RectangleShape> enemies;

@@ -13,6 +13,15 @@ void Game::initVariables()
 	this->enemySpawnTimer = this->enemySpawnTimerMax;
 	this->maxEnemies = 5;
 	this->mouseHeld = false;
+	this->shotsFired = 0;
+	this->shotsHit = 0;
+
+	//Game objects
+	this->enemy.setPosition(0.f, 0.f);
+	this->enemy.setSize(sf::Vector2f(100.f, 100.f));
+	this->enemy.setFillColor(sf::Color::Cyan);
+	//this->enemy.setOutlineColor(sf::Color::Green);
+	//this->enemy.setOutlineThickness(1.f);
 }
 
 void Game::initWindow()
@@ -167,6 +176,10 @@ void Game::updateText()
 
 	ss << "Points: " << this->points << "\n"
 	<< "Health: " << this->health << "\n";
+	float accuracy = (this->shotsFired > 0) ?
+		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
+
+	ss << "Accuracy: " << static_cast<int>(accuracy) << "%\n";
 
 	this->uiText.setString(ss.str());
 }
@@ -216,11 +229,13 @@ void Game::updateEnemies()
 		if (this->mouseHeld == false)
 		{
 			this->mouseHeld = true;
+			this->shotsFired++;
 			bool deleted = false;
 			for (size_t i = 0; i < this->enemies.size() && deleted == false; i++)
 			{
 				if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
 				{
+					this->shotsHit++;
 					//Gain points
 					if(this->enemies[i].getFillColor() == sf::Color::Magenta)
 					this->points += 10;
