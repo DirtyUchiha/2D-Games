@@ -25,50 +25,51 @@ private:
     sf::VideoMode videoMode;
     sf::Event ev;
 
+    //Game State
+    GameState gameState;
+
+    // Game Logic
+    bool endGame;
+    bool isPaused;
+    bool mouseHeld;
+
     // Mouse positions
     sf::Vector2i mousePosWindow;
     sf::Vector2f mousePosView;
 
-    // Fonts and UI
+    // UI Elements and fonts
+    sf::RectangleShape pauseButton;
+    sf::Text pauseButtonText;
+    sf::RectangleShape exitButton;
+    sf::Text exitButtonText;
+    sf::RectangleShape pauseOverlay;
     sf::Font font;
     sf::Text uiText;
+    sf::RectangleShape resumeButton;
+    sf::Text resumeButtonText;
 
-    // Game Logic
-    bool endGame;
-    unsigned points;
+	//Game variables
+    int points;
     int health;
     float enemySpawnTimer;
-
     float enemySpawnTimerMax;
     int maxEnemies;
-    bool mouseHeld;
     unsigned shotsFired;
     unsigned shotsHit;
     float accuracy;
     float bestAccuracy;
     unsigned highScore;
 
-    // Enemies including health blocks
-    sf::RectangleShape enemy; //template shape
-    std::vector<sf::RectangleShape> enemies;
-    std::vector<sf::RectangleShape> healthBlocks;
-
     // Accuracy bar
     sf::RectangleShape accuracyBarBack;
     sf::RectangleShape accuracyBar;
 
-    // Game state
-    GameState gameState;  // **No change, just used the global enum**
-    bool isPaused;
+    //Game objects
+    sf::RectangleShape enemy;
+	std::vector<sf::RectangleShape> enemies;
+	std::vector<sf::RectangleShape> healthBlocks;
 
-    // Pause overlay
-    sf::RectangleShape pauseOverlay;
-
-    // Pause button
-    sf::RectangleShape pauseButton;
-    sf::Text pauseButtonText;
-
-    // Menu UI
+    // Menu UI/Start button setup
     sf::RectangleShape startButton;
     sf::Text startButtonText;
 

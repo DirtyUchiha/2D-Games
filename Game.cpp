@@ -5,7 +5,10 @@ void Game::initVariables()
 {
 	// Other initializations...
 
+	//Set initial game state
+	this->gameState = MENU;  // Start in menu state
 	this->isPaused = false;
+	this->window = nullptr;
 
 	// Initialize pause overlay
 	this->pauseOverlay.setSize(sf::Vector2f(this->videoMode.width, this->videoMode.height));
@@ -19,18 +22,70 @@ void Game::initVariables()
 	// Initialize pause button text
 	this->pauseButtonText.setFont(this->font);
 	this->pauseButtonText.setString("Pause");
-	this->pauseButtonText.setCharacterSize(24);
+	this->pauseButtonText.setCharacterSize(30);
 	this->pauseButtonText.setFillColor(sf::Color::White);
 
 	// Center the text on the button
-	sf::FloatRect pauseButtonTextBounds = this->pauseButtonText.getLocalBounds();
-	this->pauseButtonText.setOrigin(pauseButtonTextBounds.width / 2, pauseButtonTextBounds.height / 2);
-	this->pauseButtonText.setPosition(
-		this->pauseButton.getPosition().x + this->pauseButton.getSize().x / 2.f,
-		this->pauseButton.getPosition().y + this->pauseButton.getSize().y / 2.f - 5.f
+	sf::FloatRect pauseTextBounds = this->pauseButtonText.getLocalBounds();
+	this->pauseButtonText.setOrigin(
+		pauseTextBounds.left + pauseTextBounds.width / 2.f,
+		pauseTextBounds.top + pauseTextBounds.height / 2.f
 	);
 
-	this->window = nullptr;
+	this->pauseButtonText.setPosition(
+		this->pauseButton.getPosition().x + this->pauseButton.getSize().x / 2.f,
+		this->pauseButton.getPosition().y + this->pauseButton.getSize().y / 2.f
+	);
+
+	// Initialize exit button (perfectly centered)
+	this->exitButton.setSize(sf::Vector2f(200.f, 50.f));
+	this->exitButton.setFillColor(sf::Color(255, 0, 0));  // Red button
+	this->exitButton.setPosition(
+		(1080.f - 200.f) / 2.f,  // X = 440 (centered horizontally)
+		(920.f - 50.f) / 2.f     // Y = 435 (centered vertically)
+	);
+
+	// Exit button text (perfectly centered on button)
+	this->exitButtonText.setFont(this->font);
+	this->exitButtonText.setString("Exit");
+	this->exitButtonText.setCharacterSize(32);
+	this->exitButtonText.setFillColor(sf::Color::White);
+
+	// Center the text inside the button
+	sf::FloatRect exitButtonTextBounds = this->exitButtonText.getLocalBounds();
+	this->exitButtonText.setOrigin(
+		exitButtonTextBounds.width / 2.f,
+		exitButtonTextBounds.height / 2.f
+	);
+	this->exitButtonText.setPosition(
+		this->exitButton.getPosition().x + this->exitButton.getSize().x / 2.f,
+		this->exitButton.getPosition().y + this->exitButton.getSize().y / 2.f
+	);
+
+	// Initialize resume button (centered above exit button)
+	this->resumeButton.setSize(sf::Vector2f(200.f, 50.f));
+	this->resumeButton.setFillColor(sf::Color(0, 255, 0));  // Green button
+	this->resumeButton.setPosition(
+		(1080.f - 200.f) / 2.f,      // Same X as exit button
+		(920.f - 50.f) / 2.f - 70.f  // 70px above exit button (Y = 365)
+	);
+
+	// Resume button text (centered on button)
+	this->resumeButtonText.setFont(this->font);
+	this->resumeButtonText.setString("Resume");
+	this->resumeButtonText.setCharacterSize(32);
+	this->resumeButtonText.setFillColor(sf::Color::White);
+
+	// Center the text inside the button
+	sf::FloatRect resumeButtonTextBounds = this->resumeButtonText.getLocalBounds();
+	this->resumeButtonText.setOrigin(
+		resumeButtonTextBounds.width / 2.f,
+		resumeButtonTextBounds.height / 2.f
+	);
+	this->resumeButtonText.setPosition(
+		this->resumeButton.getPosition().x + this->resumeButton.getSize().x / 2.f,
+		this->resumeButton.getPosition().y + this->resumeButton.getSize().y / 2.f
+	);
 
 	//Game logic
 	this->endGame = false;
@@ -82,23 +137,39 @@ void Game::initVariables()
 		this->startButton.getPosition().y + this->startButton.getSize().y / 2.f - 5.f
 	);
 
-	//Load high score on startup
+	//Enhanced Load high score on startup
 	std::ifstream inFile("highscore.txt");
 	if (inFile.is_open())
 	{
-		if (!(inFile >> this->highScore >> this->bestAccuracy))
-		{
-			// File exists but data is invalid
-			this->highScore = 0;
-			this->bestAccuracy = 0.f;
+		std::string line;
+		if (std::getline(inFile, line)) {
+			std::istringstream iss(line);
+			if (!(iss >> this->highScore >> this->bestAccuracy)) {
+				// File exists but data is invalid
+				this->highScore = 0;
+				this->bestAccuracy = 0.f;
+			}
+			// Validate loaded values
+			if (this->highScore < 0) this->highScore = 0;
+			if (this->bestAccuracy < 0.f) this->bestAccuracy = 0.f;
+			if (this->bestAccuracy > 100.f) this->bestAccuracy = 100.f;
 		}
 		inFile.close();
 	}
 	else
 	{
-		// File doesn't exist yet
+		// File doesn't exist - create with default values
 		this->highScore = 0;
 		this->bestAccuracy = 0.f;
+
+		std::ofstream outFile("highscore.txt");
+		if (outFile.is_open()) {
+			outFile << this->highScore << " " << this->bestAccuracy;
+			outFile.close();
+		}
+		else {
+			std::cerr << "Warning: Could not create highscore.txt\n";
+		}
 	}
 }
 
@@ -118,6 +189,11 @@ void Game::initFonts()
 	if (!this->font.loadFromFile("Fonts/Feelin Teachy TTF.ttf"))
 	{
 		std::cout << "ERROR::GAME::INITFONTS::Failed to load font!" << "\n";
+		// Load a basic SFML default font as fallback
+		if (!this->font.loadFromFile("arial.ttf")) {
+			// If even fallback fails, create a default font
+			this->font = sf::Font();
+		}
 	}
 }
 
@@ -218,6 +294,90 @@ void Game::spawnEnemy()
 	this->enemies.push_back(this->enemy);
 }
 
+//Updated updateEnemies function with health block collision
+void Game::updateEnemies()
+{
+	// Updating the timer for enemy spawning
+	if (this->enemies.size() < this->maxEnemies)
+	{
+		if (this->enemySpawnTimer >= this->enemySpawnTimerMax)
+		{
+			//spawn the enemy and reset the timer
+			this->spawnEnemy();
+			this->enemySpawnTimer = 0.f;
+		}
+		else
+			this->enemySpawnTimer += 1.f;
+	}
+
+	// Health blocks
+	for (size_t i = 0; i < this->healthBlocks.size(); i++)
+	{
+		this->healthBlocks[i].move(0.f, 4.f); //Update position
+		if (this->healthBlocks[i].getPosition().y > this->window->getSize().y)
+		{
+			this->healthBlocks.erase(this->healthBlocks.begin() + i);
+			--i;
+		}
+	}
+
+	// Move Enemies
+	for (int i = 0; i < this->enemies.size(); i++)
+	{
+		this->enemies[i].move(0.f, 5.f);
+		if (this->enemies[i].getPosition().y > this->window->getSize().y)
+		{
+			this->enemies.erase(this->enemies.begin() + i);
+			this->health--;
+			--i;
+		}
+	}
+
+	// Check if clicked on
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !this->mouseHeld)
+	{
+		this->mouseHeld = true;
+		this->shotsFired++;
+
+		// Check health blocks
+		for (size_t i = 0; i < this->healthBlocks.size(); i++)
+		{
+			if (this->healthBlocks[i].getGlobalBounds().contains(this->mousePosView))
+			{
+				this->health = std::min(this->health + 1, 20); // Heal max 20
+				this->healthBlocks.erase(this->healthBlocks.begin() + i);
+				std::cout << "Healed! Health: " << this->health << "\n";
+				return; // skip checking other enemies if you hit a health block
+			}
+		}
+
+		for (size_t i = 0; i < this->enemies.size(); i++)
+		{
+			if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
+			{
+				this->shotsHit++;
+				// Gain points based on the enemy color
+				if (this->enemies[i].getFillColor() == sf::Color::Magenta)
+					this->points += 10;
+				else if (this->enemies[i].getFillColor() == sf::Color::Blue)
+					this->points += 7;
+				else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
+					this->points += 5;
+				else if (this->enemies[i].getFillColor() == sf::Color::Red)
+					this->points += 3;
+				else if (this->enemies[i].getFillColor() == sf::Color::Green)
+					this->points += 1;
+
+				std::cout << "Points: " << this->points << "\n";
+
+				// Delete the enemy
+				this->enemies.erase(this->enemies.begin() + i);
+				break; // Exit the loop once the enemy is hit
+			}
+		}
+	}
+}
+
 void Game::pollEvents()
 {
 	while (this->window->pollEvent(this->ev))
@@ -229,29 +389,53 @@ void Game::pollEvents()
 			break;
 
 		case sf::Event::KeyPressed:
-			if (ev.key.code == sf::Keyboard::Escape)
-				this->isPaused = !this->isPaused; // Toggle pause state
+			// Toggle pause with ESC key
+			if (this->ev.key.code == sf::Keyboard::Escape &&
+				this->gameState == GAME)
+			{
+				this->isPaused = !this->isPaused;
+			}
 			break;
 
 		case sf::Event::MouseButtonPressed:
 			if (this->ev.mouseButton.button == sf::Mouse::Left)
 			{
-				//start button click check
-				if (this->gameState == MENU && this->startButton.getGlobalBounds().contains(this->mousePosView))
+				// Menu screen button
+				if (this->gameState == MENU &&
+					this->startButton.getGlobalBounds().contains(this->mousePosView))
 				{
-					this->gameState = GAME;  // Transition to game state
+					this->gameState = GAME;
+					this->isPaused = false;
+					this->endGame = false;
 				}
-				if (this->pauseButton.getGlobalBounds().contains(this->mousePosView))
+
+				// Pause button (top-right during gameplay)
+				if (this->gameState == GAME &&
+					!this->isPaused &&
+					this->pauseButton.getGlobalBounds().contains(this->mousePosView))
 				{
-					this->isPaused = !this->isPaused;  // Toggle pause state
+					this->isPaused = true;
 				}
-				//Other mouse button actions...
+
+				// Resume button (in pause menu)
+				if (this->isPaused &&
+					this->resumeButton.getGlobalBounds().contains(this->mousePosView))
+				{
+					this->isPaused = false;
+				}
+
+				// Exit button (in pause menu)
+				if (this->isPaused &&
+					this->exitButton.getGlobalBounds().contains(this->mousePosView))
+				{
+					this->window->close();
+				}
 			}
 			break;
 
 		case sf::Event::MouseButtonReleased:
 			if (this->ev.mouseButton.button == sf::Mouse::Left)
-				this->mouseHeld = false;  // Allow re-clicking next frame
+				this->mouseHeld = false;
 			break;
 		}
 	}
@@ -305,103 +489,13 @@ void Game::updateText()
 	this->uiText.setString(ss.str());
 }
 
-void Game::updateEnemies()
-{
-	/**
-		@return void
-
-		Updates the enemy spawn timer and spawns enemies
-		when the total enemies is smaller than the maximum.
-		Moves the enemies downwards
-		Removes the enemies at the edge of the screen.
-	*/
-
-	//Updating the timer for enemy spawning
-	if (this->enemies.size() < this->maxEnemies)
-	{
-		if (this->enemySpawnTimer >= this->enemySpawnTimerMax)
-		{
-			//spawn the enemy and reset the timer
-			this->spawnEnemy();
-			this->enemySpawnTimer = 0.f;
-		}
-		else
-			this->enemySpawnTimer += 1.f;
-	}
-
-	// Health blocks
-	for (size_t i = 0; i < this->healthBlocks.size(); i++)
-	{
-		this->healthBlocks[i].move(0.f, 4.f); //Update position
-		if (this->healthBlocks[i].getPosition().y > this->window->getSize().y)
-		{
-			this->healthBlocks.erase(this->healthBlocks.begin() + i);
-			--i;
-		}
-	}
-
-	// Move Enemies
-	for (int i = 0; i < this->enemies.size(); i++)
-	{
-		this->enemies[i].move(0.f, 5.f);
-		if (this->enemies[i].getPosition().y > this->window->getSize().y)
-		{
-			this->enemies.erase(this->enemies.begin() + i);
-			this->health --;
-			--i;
-		}
-	}
-	//Check if clicked on
-	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !this->mouseHeld)
-		{
-			this->mouseHeld = true;
-			this->shotsFired++;
-
-			// Check health blocks
-			for (size_t i = 0; i < this->healthBlocks.size(); i++)
-			{
-				if (this->healthBlocks[i].getGlobalBounds().contains(this->mousePosView))
-				{
-					this->health = std::min(this->health + 1, 20); // Heal max 20
-					this->healthBlocks.erase(this->healthBlocks.begin() + i);
-					std::cout << "Healed! Health: " << this->health << "\n";
-					return; // skip checking other enemies if you hit a health block
-				}
-			}
-
-			for (size_t i = 0; i < this->enemies.size(); i++)
-			{
-				if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
-				{
-					this->shotsHit++;
-					//Gain points
-					if(this->enemies[i].getFillColor() == sf::Color::Magenta)
-					this->points += 10;
-					else if (this->enemies[i].getFillColor() == sf::Color::Blue)
-						this->points += 7;
-					else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
-						this->points += 5;
-					else if (this->enemies[i].getFillColor() == sf::Color::Red)
-						this->points += 3;
-					else if (this->enemies[i].getFillColor() == sf::Color::Green)
-						this->points += 1;
-
-					std::cout << "Points: " << this->points << "\n";
-
-					//Delete the enemy
-					this->enemies.erase(this->enemies.begin() + i);
-					break; // Exit the loop once the enemy is hit
-				}
-			}
-		}
-	}
 
 void Game::update()
 {
 	this->pollEvents();
-	this->updateMousePositions(); // Always update mouse position for button click detection
+	this->updateMousePositions(); // Always update for button interaction
 
-	if (!this->isPaused) // Only update game logic if not paused
+	if (!this->isPaused)  // Only update gameplay logic when unpaused
 	{
 		if (this->gameState == GAME && !this->endGame)
 		{
@@ -429,6 +523,7 @@ void Game::update()
 		}
 	}
 }
+
 void Game::renderText(sf::RenderTarget& target)
 {
 	target.draw(this->uiText);
@@ -440,71 +535,104 @@ void Game::renderEnemies(sf::RenderTarget& target)
 	//Rendering all the enemies
 	for (auto &e : this->enemies)
 	{
-		target.draw(e);
-	}
+		 target.draw(e);
+    }
 
-	// Draw health blocks
-	for (auto& h : this->healthBlocks)
-	{
-		target.draw(h);
+    // Draw health blocks and their "+" signs
+    for (auto& h : this->healthBlocks)
+    {
+        target.draw(h);
 
-		// Create plus sign text
-		sf::Text plusText;
-		plusText.setFont(this->font);
-		plusText.setString("+");
-		plusText.setCharacterSize(40);
-		plusText.setFillColor(sf::Color::Red);
+        // Create and position the plus sign
+        sf::Text plusText;
+        plusText.setFont(this->font);
+        plusText.setString("+");
+        plusText.setCharacterSize(24);
+        plusText.setFillColor(sf::Color::Red);
 
-		// Center the plus sign on the health block
-		sf::FloatRect hBounds = h.getGlobalBounds();
-		sf::FloatRect tBounds = plusText.getGlobalBounds();
+        sf::FloatRect healthBlockBounds = h.getGlobalBounds();
+        plusText.setPosition(healthBlockBounds.left + healthBlockBounds.width / 2.f - plusText.getLocalBounds().width / 2.f,
+                             healthBlockBounds.top + healthBlockBounds.height / 2.f - plusText.getLocalBounds().height / 2.f);
 
-		//Set origin of the text to its center
-		plusText.setOrigin(tBounds.width / 2.f, tBounds.height / 2.f);
-
-		//Set the position of the text to the center of the health block
-		plusText.setPosition(
-			hBounds.left + hBounds.width / 2.1f,   // Horizontal center
-			hBounds.top + hBounds.height / 80.f     // Vertical center
-		);
-
-		//draw the plus sign text
-		target.draw(plusText);
-	}
+        target.draw(plusText);
+    }
 }
 
 void Game::renderMenu(sf::RenderTarget& target)
 {
-	// Draw the start button and its text
-	target.draw(this->startButton);
-	target.draw(this->startButtonText);
+	if (this->gameState == MENU)
+	{
+		// Render start button, etc. for menu state
+		target.draw(this->startButton);
+		target.draw(this->startButtonText);
+	}
+
+	if (this->gameState == GAME && !this->isPaused)
+	{
+		// Rendering game objects
+		target.draw(this->accuracyBarBack);
+		target.draw(this->accuracyBar);
+		target.draw(this->uiText);
+
+		// Render enemies and health blocks
+		renderEnemies(target);
+	}
+
+	if (this->isPaused)
+	{
+		// Render pause overlay
+		target.draw(this->pauseOverlay);
+
+		// Render the resume button
+		target.draw(this->resumeButton);
+		target.draw(this->resumeButtonText);
+
+		// Render exit button
+		target.draw(this->exitButton);
+		target.draw(this->exitButtonText);
+	}
 }
 
 void Game::updateUI() 
-{ 
+{
 	// Skip UI updates if the game is paused
 	if (this->isPaused)
 		return;
 
-	// Calculate accuracy
-	float accuracy = 0.f;
-	if (shotsFired > 0)
-		accuracy = static_cast<float>(shotsHit) / shotsFired;
+	// Calculate accuracy (using class member variables)
+	this->accuracy = (this->shotsFired > 0) ?
+		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
 
 	// Update accuracy bar width
+	float percent = this->accuracy / 100.f;
 	float maxBarWidth = 200.f; // max width of the bar
-	this->accuracyBar.setSize(sf::Vector2f(accuracy * maxBarWidth, this->accuracyBar.getSize().y));
+	this->accuracyBar.setSize(sf::Vector2f(percent * maxBarWidth, this->accuracyBar.getSize().y));
 
 	// Change color based on accuracy
-	if (accuracy >= 0.75f)
+	if (this->accuracy >= 75.f) {
 		this->accuracyBar.setFillColor(sf::Color::Green);
-	else if (accuracy >= 0.5f)
+		this->uiText.setFillColor(sf::Color::Green);
+	}
+	else if (this->accuracy >= 50.f) {
 		this->accuracyBar.setFillColor(sf::Color::Yellow);
-	else
+		this->uiText.setFillColor(sf::Color::Yellow);
+	}
+	else {
 		this->accuracyBar.setFillColor(sf::Color::Red);
+		this->uiText.setFillColor(sf::Color::Red);
+	}
 
-	// Optionally update other UI elements (like score text, etc.) here
+	// Update the text display (moved from updateText() for better organization)
+	std::stringstream ss;
+	ss << "Points: " << this->points << "\n"
+		<< "Health: " << this->health << "\n"
+		<< "Accuracy: " << static_cast<int>(this->accuracy) << "%\n"
+		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
+		<< "High Score: " << this->highScore << "\n";
+
+	this->uiText.setString(ss.str());
 }
+
 void Game::render()
 {
 	// Clear old frames
@@ -517,41 +645,47 @@ void Game::render()
 	}
 	else if (this->gameState == GAME)
 	{
+		// Always render game elements
 		this->renderEnemies(*this->window);
 		this->window->draw(this->accuracyBarBack);
 		this->window->draw(this->accuracyBar);
 		this->renderText(*this->window);
 
-		// Draw pause button even during gameplay
+		// Draw pause button (always visible during gameplay - top right corner)
 		this->window->draw(this->pauseButton);
 		this->window->draw(this->pauseButtonText);
 
-		// Draw pause overlay if paused
+		// Draw pause menu if paused (ESC or pause button)
 		if (this->isPaused)
 		{
 			// Draw semi-transparent overlay
 			this->window->draw(this->pauseOverlay);
 
-			// Draw "Paused" text
+			// Draw "Paused" text (centered near top of screen)
 			sf::Text pausedText;
 			pausedText.setFont(this->font);
 			pausedText.setString("Paused");
 			pausedText.setCharacterSize(50);
 			pausedText.setFillColor(sf::Color::White);
 
-			// Center the "Paused" text
 			sf::FloatRect textBounds = pausedText.getLocalBounds();
 			pausedText.setOrigin(textBounds.width / 2.f, textBounds.height / 2.f);
 			pausedText.setPosition(
 				this->videoMode.width / 2.f,
-				this->videoMode.height / 2.f
+				this->videoMode.height / 3.f  // Higher up on screen
 			);
-
 			this->window->draw(pausedText);
+
+			// Draw exit button (centered below "Paused" text)
+			this->window->draw(this->exitButton);
+			this->window->draw(this->exitButtonText);
+
+			// Draw resume button (centered below exit button) - optional if you want to keep it
+			this->window->draw(this->resumeButton);
+			this->window->draw(this->resumeButtonText);
 		}
 	}
 
 	// Display the final frame
 	this->window->display();
 }
-
