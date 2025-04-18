@@ -5,6 +5,8 @@
 #include <ctime>
 #include <sstream>
 #include <fstream>
+#include <cmath>
+#include <algorithm>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>
@@ -13,7 +15,7 @@
 #include <SFML/Network.hpp>
 
 // Enum for Game State
-enum GameState { MENU, GAME };  // **Removed duplicate enum inside class**
+enum GameState { MENU, GAME, PAUSED };  // **Removed duplicate enum inside class**
 
 class Game
 {
@@ -57,6 +59,14 @@ private:
 
     // Game state
     GameState gameState;  // **No change, just used the global enum**
+    bool isPaused;
+
+    // Pause overlay
+    sf::RectangleShape pauseOverlay;
+
+    // Pause button
+    sf::RectangleShape pauseButton;
+    sf::Text pauseButtonText;
 
     // Menu UI
     sf::RectangleShape startButton;
@@ -68,6 +78,7 @@ private:
     void initFonts();
     void initText();
     void initEnemies();
+ 
 
 public:
     // Constructors / Destructors
@@ -82,6 +93,7 @@ public:
     void pollEvents();
     void update();
     void render();
+    void updateUI();
 
     //Game specific logic
     void spawnEnemy();
