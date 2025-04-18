@@ -12,78 +12,87 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Network.hpp>
 
-/*
-	Class that acts as the game engine
-	Wrapper class
-*/
+// Enum for Game State
+enum GameState { MENU, GAME };  // **Removed duplicate enum inside class**
 
 class Game
-{ 
+{
 private:
-	//Variables
-	// Window
-	sf::RenderWindow* window;
-	sf::VideoMode videoMode;
-	sf::Event ev;
+    // Window
+    sf::RenderWindow* window;
+    sf::VideoMode videoMode;
+    sf::Event ev;
 
-	//Mouse positions
-	sf::Vector2i mousePosWindow;
-	sf::Vector2f mousePosView;
+    // Mouse positions
+    sf::Vector2i mousePosWindow;
+    sf::Vector2f mousePosView;
 
-	//Resources
-	sf::Font font;
+    // Fonts and UI
+    sf::Font font;
+    sf::Text uiText;
 
-	//Text
-	sf::Text uiText;
+    // Game Logic
+    bool endGame;
+    unsigned points;
+    int health;
+    float enemySpawnTimer;
 
-	//Game Logic
-	bool endGame;
-	unsigned points;
-	int health;
-	float enemySpawnTimer;
-	float enemySpawnTimerMax;
-	int maxEnemies;
-	bool mouseHeld;
-	unsigned shotsFired;
-	unsigned shotsHit;
-	float accuracy;
-	float bestAccuracy;
-	unsigned highScore;
+    float enemySpawnTimerMax;
+    int maxEnemies;
+    bool mouseHeld;
+    unsigned shotsFired;
+    unsigned shotsHit;
+    float accuracy;
+    float bestAccuracy;
+    unsigned highScore;
 
+    // Enemies including health blocks
+    sf::RectangleShape enemy; //template shape
+    std::vector<sf::RectangleShape> enemies;
+    std::vector<sf::RectangleShape> healthBlocks;
 
-	//Game objects
-	std::vector<sf::RectangleShape> enemies;
-	sf::RectangleShape enemy;
-	sf::RectangleShape accuracyBarBack;
-	sf::RectangleShape accuracyBar;
-	std::vector<sf::RectangleShape> healthBlocks;
+    // Accuracy bar
+    sf::RectangleShape accuracyBarBack;
+    sf::RectangleShape accuracyBar;
 
-	//Private functions
-	void initVariables();
-	void initWindow();
-	void initFonts();
-	void initText();
-	void initEnemies();
+    // Game state
+    GameState gameState;  // **No change, just used the global enum**
+
+    // Menu UI
+    sf::RectangleShape startButton;
+    sf::Text startButtonText;
+
+	// Private functions/Init functions
+    void initVariables();
+    void initWindow();
+    void initFonts();
+    void initText();
+    void initEnemies();
 
 public:
-	//Constructors / Destructors
-	Game();
-	virtual ~Game();
+    // Constructors / Destructors
+    Game();
+    virtual ~Game();
 
-	//Accessors
-	const bool getWindowIsOpen() const;
-	const bool getEndGame() const;
+    // Accessors
+    bool getWindowIsOpen() const;
+    bool getEndGame() const;
 
-	//Functions
-	void spawnEnemy();
+    // Functions
+    void pollEvents();
+    void update();
+    void render();
 
-	void pollEvents();
-	void updateMousePositions();
-	void updateText();
-	void updateEnemies();
-	void update();
+    //Game specific logic
+    void spawnEnemy();
+    void updateEnemies();
+    void updateText();
+    void updateMousePositions();
 
-	void renderText(sf::RenderTarget& target);
-	void renderEnemies(sf::RenderTarget& target);
-	void render();
+    //Render helpers
+    void renderEnemies(sf::RenderTarget& target);
+    void renderText(sf::RenderTarget& target);
+
+    // Menu render helper
+    void renderMenu(sf::RenderTarget& target);
 };

@@ -28,21 +28,51 @@ void Game::initVariables()
 	this->accuracyBar.setPosition(0.f, 160.f);
 
 	//Game objects
-	this->enemy.setPosition(0.f, 0.f);
 	this->enemy.setSize(sf::Vector2f(100.f, 100.f));
 	this->enemy.setFillColor(sf::Color::Cyan);
+	this->enemy.setPosition(0.f, 0.f);
 	//this->enemy.setOutlineColor(sf::Color::Green);
 	//this->enemy.setOutlineThickness(1.f);
+
+		// Game state
+	this->gameState = MENU;
+
+	// Start Button Setup
+	this->startButton.setSize(sf::Vector2f(200.f, 60.f));
+	this->startButton.setFillColor(sf::Color(100, 100, 255));
+	this->startButton.setPosition(
+		this->videoMode.width / 2.f - this->startButton.getSize().x / 2.f,
+		this->videoMode.height / 2.f - this->startButton.getSize().y / 2.f
+	);
+
+	this->startButtonText.setFont(this->font);
+	this->startButtonText.setString("START");
+	this->startButtonText.setCharacterSize(28);
+	this->startButtonText.setFillColor(sf::Color::White);
+
+	// Center the text on the button
+	sf::FloatRect textBounds = this->startButtonText.getLocalBounds();
+	this->startButtonText.setOrigin(textBounds.width / 2, textBounds.height / 2);
+	this->startButtonText.setPosition(
+		this->startButton.getPosition().x + this->startButton.getSize().x / 2.f,
+		this->startButton.getPosition().y + this->startButton.getSize().y / 2.f - 5.f
+	);
 
 	//Load high score on startup
 	std::ifstream inFile("highscore.txt");
 	if (inFile.is_open())
 	{
-		inFile >> this->highScore >> this->bestAccuracy;
+		if (!(inFile >> this->highScore >> this->bestAccuracy))
+		{
+			// File exists but data is invalid
+			this->highScore = 0;
+			this->bestAccuracy = 0.f;
+		}
 		inFile.close();
 	}
 	else
 	{
+		// File doesn't exist yet
 		this->highScore = 0;
 		this->bestAccuracy = 0.f;
 	}
@@ -53,9 +83,10 @@ void Game::initWindow()
 	this->videoMode.height = 920;
 	this->videoMode.width = 1080;
 	//this->videoMode.getDesktopMode; // optional if you dont want a auto custom window
-	this->window = new sf::RenderWindow(this->videoMode, "Game 1", sf::Style::Titlebar | sf::Style::Close);
-
-	this->window->setFramerateLimit(80);
+	this->window = new sf::RenderWindow(this->videoMode, "Aim trainer", sf::Style::Titlebar | sf::Style::Close);
+	this->window->setFramerateLimit(60);
+	this->window->setVerticalSyncEnabled(true); // Optional, but can help with performance
+	this->window->setMouseCursorGrabbed(true);
 }
 
 void Game::initFonts()
@@ -91,6 +122,7 @@ Game::Game()
 	this->initFonts();
 	this->initText();
 	this->initEnemies();
+	this->gameState = MENU;
 }
 
 Game::~Game()
@@ -99,12 +131,12 @@ Game::~Game()
 }
 
 //Accessors
-const bool Game::getWindowIsOpen() const
+bool Game::getWindowIsOpen() const
 {
 	return this->window->isOpen();
 }
 
-const bool Game::getEndGame() const
+bool Game::getEndGame() const
 {
 	return this ->endGame;
 }
@@ -112,31 +144,28 @@ const bool Game::getEndGame() const
 //Functions
 void Game::spawnEnemy()
 {
-	this->enemy.setPosition(
-		static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - this->enemy.getSize().x)),
-		0.f
-	);
-
 	//Randomize enemy type
 	int type = rand() % 6; // increase range to 6 to include health block
 	if (type == 5)
 	{
 		// Health block
+		float blockSize = 30.f;
+		float x = static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - static_cast<int>(blockSize)));
+
 		sf::RectangleShape healthBlock;
 		healthBlock.setSize(sf::Vector2f(30.f, 30.f));
 		healthBlock.setFillColor(sf::Color::White);
-		healthBlock.setPosition(
-			static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - 30)),
-			0.f
-		);
+		healthBlock.setPosition(x, 0.f);
+
 		this->healthBlocks.push_back(healthBlock);
 		return; // Don't spawn a regular enemy this time
 	}
 
+	//set enemy type
 	switch (type)
 	{
 	case 0:
-		this->enemy.setSize(sf::Vector2f(10.f, 10.f));
+		this->enemy.setSize(sf::Vector2f(18.f, 18.f));
 		this->enemy.setFillColor(sf::Color::Magenta);
 		break;
 	case 1:
@@ -157,12 +186,16 @@ void Game::spawnEnemy()
 		break;
 	}
 
+	//Position the enemy within window bounds
+	float enemyWidth = this->enemy.getSize().x;
+	float x = static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - static_cast<int>(enemyWidth)));
+	this->enemy.setPosition(x, 0.f);
+
 	this->enemies.push_back(this->enemy);
 }
 
 void Game::pollEvents()
 {
-	//Event polling
 	while (this->window->pollEvent(this->ev))
 	{
 		switch (this->ev.type)
@@ -170,9 +203,27 @@ void Game::pollEvents()
 		case sf::Event::Closed:
 			this->window->close();
 			break;
+
 		case sf::Event::KeyPressed:
 			if (ev.key.code == sf::Keyboard::Escape)
 				this->window->close();
+			break;
+
+		case sf::Event::MouseButtonPressed:
+			if (this->ev.mouseButton.button == sf::Mouse::Left)
+			{
+				// Only check for start button clicks here, NOT shooting
+				if (this->gameState == MENU &&
+					this->startButton.getGlobalBounds().contains(this->mousePosView))
+				{
+					this->gameState = GAME;
+				}
+			}
+			break;
+
+		case sf::Event::MouseButtonReleased:
+			if (this->ev.mouseButton.button == sf::Mouse::Left)
+				this->mouseHeld = false;  // Allow re-clicking next frame
 			break;
 		}
 	}
@@ -258,26 +309,23 @@ void Game::updateEnemies()
 		if (this->healthBlocks[i].getPosition().y > this->window->getSize().y)
 		{
 			this->healthBlocks.erase(this->healthBlocks.begin() + i);
-			i--;
+			--i;
 		}
 	}
 
-	// Enemies
+	// Move Enemies
 	for (int i = 0; i < this->enemies.size(); i++)
 	{
 		this->enemies[i].move(0.f, 5.f);
-
 		if (this->enemies[i].getPosition().y > this->window->getSize().y)
 		{
 			this->enemies.erase(this->enemies.begin() + i);
-			this->health -= 1;
-			std::cout << "Health: " << this->health << "\n";
+			this->health --;
+			--i;
 		}
 	}
 	//Check if clicked on
-	if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-	{
-		if (this->mouseHeld == false)
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !this->mouseHeld)
 		{
 			this->mouseHeld = true;
 			this->shotsFired++;
@@ -288,8 +336,8 @@ void Game::updateEnemies()
 				if (this->healthBlocks[i].getGlobalBounds().contains(this->mousePosView))
 				{
 					this->health = std::min(this->health + 1, 20); // Heal max 20
-					std::cout << "Healed! Health: " << this->health << "\n";
 					this->healthBlocks.erase(this->healthBlocks.begin() + i);
+					std::cout << "Healed! Health: " << this->health << "\n";
 					return; // skip checking other enemies if you hit a health block
 				}
 			}
@@ -320,41 +368,28 @@ void Game::updateEnemies()
 			}
 		}
 	}
-	else
-	{
-		this->mouseHeld = false;
-	}
-}
 
 void Game::update()
 {
 	this->pollEvents();
+	this->updateMousePositions(); // Always update mouse position for button click detection
 
-	if (this->endGame == false)
+	if (this->gameState == GAME && this->endGame == false)
 	{
-		this->updateMousePositions();
-
 		this->updateText();
-
 		this->updateEnemies();
-
 	}
 
-	//Endgame condition
-	if (this->health <= 0)
+	if (this->gameState == GAME && this->health <= 0)
 	{
 		this->endGame = true;
 
-		// Update best accuracy
 		if (this->accuracy > this->bestAccuracy)
 			this->bestAccuracy = this->accuracy;
 
-		// Check if the player beat the high score
 		if (this->points > this->highScore)
 		{
 			this->highScore = this->points;
-
-			// Save new high score to file
 			std::ofstream outFile("highscore.txt");
 			if (outFile.is_open())
 			{
@@ -409,28 +444,39 @@ void Game::renderEnemies(sf::RenderTarget& target)
 	}
 }
 
+void Game::renderMenu(sf::RenderTarget& target)
+{
+	// Draw the start button and its text
+	target.draw(this->startButton);
+	target.draw(this->startButtonText);
+}
+
 void Game::render()
 {
-	/*
-		@return void
-	
-		 -clear old frames
-		 -clear the game objects
-		 -display frame in window
-
-		 -Renders the game objects
-	*/
-
+	// Clear old frames
 	this->window->clear(sf::Color(0, 0, 0, 255));
 
-	//draw game objects
-	this->renderEnemies(*this->window);
+	// Check the game state
+	if (this->gameState == MENU)
+	{
+		// Render the menu (including the start button)
+		this->window->draw(this->startButton);
+		this->window->draw(this->startButtonText);
+	}
+	else if (this->gameState == GAME)
+	{
+		// Render the game objects (enemies, health blocks, etc.)
+		this->renderEnemies(*this->window);
 
-	this->renderText(*this->window);
+		// Render text (score, accuracy, etc.)
+		this->renderText(*this->window);
 
-	//draw accuracy bar before display()
-	this->window->draw(this->accuracyBarBack);
-	this->window->draw(this->accuracyBar);
+		// Render the accuracy bar
+		this->window->draw(this->accuracyBarBack);
+		this->window->draw(this->accuracyBar);
+	}
 
+	// Display the frame in the window
 	this->window->display();
 }
+
