@@ -338,9 +338,9 @@ void Game::updateEnemies()
 	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !this->mouseHeld)
 	{
 		this->mouseHeld = true;
-		this->shotsFired++;
+		bool clickedOnSomething = false;
 
-		// Check health blocks
+		// Check health blocks first
 		for (size_t i = 0; i < this->healthBlocks.size(); i++)
 		{
 			// Create expanded bounds for better click detection
@@ -353,37 +353,44 @@ void Game::updateEnemies()
 				this->health = std::min(this->health + 1, 20); // Heal max 20
 				this->healthBlocks.erase(this->healthBlocks.begin() + i);
 				std::cout << "Healed! Health: " << this->health << "\n";
-				return; // skip checking other enemies if you hit a health block
+				clickedOnSomething = true;
+				break; // skip checking other objects if you hit a health block
 			}
 		}
 
-		for (size_t i = 0; i < this->enemies.size(); i++)
+		// If we didn't click on a health block, check enemies and count as a shot
+		if (!clickedOnSomething)
 		{
-			// Create expanded bounds for better click detection
-			sf::FloatRect bounds = this->enemies[i].getGlobalBounds();
-			bounds.top -= 5.f;      // Move top edge up by 5 pixels
-			bounds.height += 5.f;   // Increase height by 5 pixels
+			this->shotsFired++; // Only increment shots fired if we're aiming at enemies
 
-			if (bounds.contains(this->mousePosView))
+			for (size_t i = 0; i < this->enemies.size(); i++)
 			{
-				this->shotsHit++;
-				// Gain points based on the enemy color
-				if (this->enemies[i].getFillColor() == sf::Color::Magenta)
-					this->points += 10;
-				else if (this->enemies[i].getFillColor() == sf::Color::Blue)
-					this->points += 7;
-				else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
-					this->points += 5;
-				else if (this->enemies[i].getFillColor() == sf::Color::Red)
-					this->points += 3;
-				else if (this->enemies[i].getFillColor() == sf::Color::Green)
-					this->points += 1;
+				// Create expanded bounds for better click detection
+				sf::FloatRect bounds = this->enemies[i].getGlobalBounds();
+				bounds.top -= 5.f;      // Move top edge up by 5 pixels
+				bounds.height += 5.f;   // Increase height by 5 pixels
 
-				std::cout << "Points: " << this->points << "\n";
+				if (bounds.contains(this->mousePosView))
+				{
+					this->shotsHit++;
+					// Gain points based on the enemy color
+					if (this->enemies[i].getFillColor() == sf::Color::Magenta)
+						this->points += 10;
+					else if (this->enemies[i].getFillColor() == sf::Color::Blue)
+						this->points += 7;
+					else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
+						this->points += 5;
+					else if (this->enemies[i].getFillColor() == sf::Color::Red)
+						this->points += 3;
+					else if (this->enemies[i].getFillColor() == sf::Color::Green)
+						this->points += 1;
 
-				// Delete the enemy
-				this->enemies.erase(this->enemies.begin() + i);
-				break; // Exit the loop once the enemy is hit
+					std::cout << "Points: " << this->points << "\n";
+
+					// Delete the enemy
+					this->enemies.erase(this->enemies.begin() + i);
+					break; // Exit the loop once the enemy is hit
+				}
 			}
 		}
 	}
@@ -557,7 +564,7 @@ void Game::renderEnemies(sf::RenderTarget& target)
 		debugRect.setPosition(bounds.left, bounds.top);
 		debugRect.setSize(sf::Vector2f(bounds.width, bounds.height));
 		debugRect.setFillColor(sf::Color::Transparent);
-		debugRect.setOutlineColor(sf::Color::White);
+		debugRect.setOutlineColor(sf::Color::Yellow);
 		debugRect.setOutlineThickness(1.f);
 		target.draw(debugRect);
 	}
