@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cmath>
 #include <algorithm>
+#include <iomanip>
 
 #include <SFML/Graphics.hpp>
 #include <SFML/System.hpp>

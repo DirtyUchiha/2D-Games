@@ -103,11 +103,11 @@ void Game::initVariables()
 
 	this->accuracyBarBack.setSize(sf::Vector2f(200.f, 20.f));
 	this->accuracyBarBack.setFillColor(sf::Color(50, 50, 50, 200));
-	this->accuracyBarBack.setPosition(0.f, 160.f);
+	this->accuracyBarBack.setPosition(0.f, 180.f);
 
 	this->accuracyBar.setSize(sf::Vector2f(200.f, 20.f));
 	this->accuracyBar.setFillColor(sf::Color::Green);
-	this->accuracyBar.setPosition(0.f, 160.f);
+	this->accuracyBar.setPosition(0.f, 180.f);
 
 	//Game objects
 	this->enemy.setSize(sf::Vector2f(100.f, 100.f));
@@ -120,7 +120,7 @@ void Game::initVariables()
 	this->startButton.setSize(sf::Vector2f(200.f, 60.f));
 	this->startButton.setFillColor(sf::Color(100, 100, 255));
 	this->startButton.setPosition(
-		this->videoMode.width / 2.f - this->startButton.getSize().x / 2.f,
+		this->videoMode.width / 920.f - this->startButton.getSize().x / 2.f,
 		this->videoMode.height / 2.f - this->startButton.getSize().y / 2.f
 	);
 
@@ -201,8 +201,9 @@ void Game::initText()
 {
 	this->uiText.setFont(this->font);
 	this->uiText.setCharacterSize(24);
-	this->uiText.setFillColor(sf::Color::White);
-	this->uiText.setString("NONE");
+	this->uiText.setFillColor(sf::Color::White); // Set to visible color
+	this->uiText.setString(""); // Empty string
+	this->uiText.setPosition(10.f, 10.f); // Set a proper position
 }
 
 void Game::initEnemies()
@@ -238,7 +239,7 @@ bool Game::getWindowIsOpen() const
 
 bool Game::getEndGame() const
 {
-	return this ->endGame;
+	return this->endGame;
 }
 
 //Functions
@@ -342,7 +343,12 @@ void Game::updateEnemies()
 		// Check health blocks
 		for (size_t i = 0; i < this->healthBlocks.size(); i++)
 		{
-			if (this->healthBlocks[i].getGlobalBounds().contains(this->mousePosView))
+			// Create expanded bounds for better click detection
+			sf::FloatRect bounds = this->healthBlocks[i].getGlobalBounds();
+			bounds.top -= 5.f;      // Move top edge up by 5 pixels
+			bounds.height += 5.f;   // Increase height by 5 pixels
+
+			if (bounds.contains(this->mousePosView))
 			{
 				this->health = std::min(this->health + 1, 20); // Heal max 20
 				this->healthBlocks.erase(this->healthBlocks.begin() + i);
@@ -353,7 +359,12 @@ void Game::updateEnemies()
 
 		for (size_t i = 0; i < this->enemies.size(); i++)
 		{
-			if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
+			// Create expanded bounds for better click detection
+			sf::FloatRect bounds = this->enemies[i].getGlobalBounds();
+			bounds.top -= 5.f;      // Move top edge up by 5 pixels
+			bounds.height += 5.f;   // Increase height by 5 pixels
+
+			if (bounds.contains(this->mousePosView))
 			{
 				this->shotsHit++;
 				// Gain points based on the enemy color
@@ -463,8 +474,8 @@ void Game::updateText()
 
 	ss << "Points: " << this->points << "\n"
 		<< "Health: " << this->health << "\n"
-		<< "Accuracy: " << static_cast<int>(this->accuracy) << "%\n"
-		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
+		<< "Accuracy: " << std::fixed << std::setprecision(1) << this->accuracy << "%\n"
+		<< "Best Accuracy: " << std::fixed << std::setprecision(1) << this->bestAccuracy << "%\n"
 		<< "High Score: " << this->highScore << "\n";
 
 	float percent = (this->accuracy / 100.f);
@@ -488,7 +499,6 @@ void Game::updateText()
 
 	this->uiText.setString(ss.str());
 }
-
 
 void Game::update()
 {
@@ -532,30 +542,58 @@ void Game::renderText(sf::RenderTarget& target)
 
 void Game::renderEnemies(sf::RenderTarget& target)
 {
-	//Rendering all the enemies
-	for (auto &e : this->enemies)
+	// Rendering all the enemies
+	for (auto& e : this->enemies)
 	{
-		 target.draw(e);
-    }
+		target.draw(e);
 
-    // Draw health blocks and their "+" signs
-    for (auto& h : this->healthBlocks)
-    {
-        target.draw(h);
+		// Debug visualization - draw hitbox
+		sf::RectangleShape debugRect;
+		sf::FloatRect bounds = e.getGlobalBounds();
+		// Apply the same expansion as in updateEnemies
+		bounds.top -= 5.f;
+		bounds.height += 5.f;
 
-        // Create and position the plus sign
-        sf::Text plusText;
-        plusText.setFont(this->font);
-        plusText.setString("+");
-        plusText.setCharacterSize(24);
-        plusText.setFillColor(sf::Color::Red);
+		debugRect.setPosition(bounds.left, bounds.top);
+		debugRect.setSize(sf::Vector2f(bounds.width, bounds.height));
+		debugRect.setFillColor(sf::Color::Transparent);
+		debugRect.setOutlineColor(sf::Color::White);
+		debugRect.setOutlineThickness(1.f);
+		target.draw(debugRect);
+	}
 
-        sf::FloatRect healthBlockBounds = h.getGlobalBounds();
-        plusText.setPosition(healthBlockBounds.left + healthBlockBounds.width / 2.f - plusText.getLocalBounds().width / 2.f,
-                             healthBlockBounds.top + healthBlockBounds.height / 2.f - plusText.getLocalBounds().height / 2.f);
+	// Draw health blocks and their "+" signs
+	for (auto& h : this->healthBlocks)
+	{
+		target.draw(h);
 
-        target.draw(plusText);
-    }
+		// Debug visualization - draw hitbox
+		sf::RectangleShape debugRect;
+		sf::FloatRect bounds = h.getGlobalBounds();
+		// Apply the same expansion as in updateEnemies
+		bounds.top -= 5.f;
+		bounds.height += 5.f;
+
+		debugRect.setPosition(bounds.left, bounds.top);
+		debugRect.setSize(sf::Vector2f(bounds.width, bounds.height));
+		debugRect.setFillColor(sf::Color::Transparent);
+		debugRect.setOutlineColor(sf::Color::Yellow);
+		debugRect.setOutlineThickness(1.f);
+		target.draw(debugRect);
+
+		// Create and position the plus sign
+		sf::Text plusText;
+		plusText.setFont(this->font);
+		plusText.setString("+");
+		plusText.setCharacterSize(24);
+		plusText.setFillColor(sf::Color::Red);
+
+		sf::FloatRect healthBlockBounds = h.getGlobalBounds();
+		plusText.setPosition(healthBlockBounds.left + healthBlockBounds.width / 2.f - plusText.getLocalBounds().width / 2.f,
+			healthBlockBounds.top + healthBlockBounds.height / 2.f - plusText.getLocalBounds().height / 2.f);
+
+		target.draw(plusText);
+	}
 }
 
 void Game::renderMenu(sf::RenderTarget& target)
@@ -593,7 +631,7 @@ void Game::renderMenu(sf::RenderTarget& target)
 	}
 }
 
-void Game::updateUI() 
+void Game::updateUI()
 {
 	// Skip UI updates if the game is paused
 	if (this->isPaused)
@@ -626,7 +664,7 @@ void Game::updateUI()
 	std::stringstream ss;
 	ss << "Points: " << this->points << "\n"
 		<< "Health: " << this->health << "\n"
-		<< "Accuracy: " << static_cast<int>(this->accuracy) << "%\n"
+		<< std::fixed << std::setprecision(1) << "Accuracy: " << this->accuracy << "%\n"
 		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
 		<< "High Score: " << this->highScore << "\n";
 
@@ -654,6 +692,8 @@ void Game::render()
 		// Draw pause button (always visible during gameplay - top right corner)
 		this->window->draw(this->pauseButton);
 		this->window->draw(this->pauseButtonText);
+
+
 
 		// Draw pause menu if paused (ESC or pause button)
 		if (this->isPaused)
