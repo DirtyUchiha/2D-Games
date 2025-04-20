@@ -1178,10 +1178,11 @@ void Game::handleGameObjectClicks()
 		}
 	}
 }
+
 void Game::initFreezeButton()
 		{
 			if (this->hasFreezeAbility) {
-				this->freezeAbilityButton.setSize(sf::Vector2f(150.f, 50.f));  // Wider to fit text
+				this->freezeAbilityButton.setSize(sf::Vector2f(100.f, 50.f));  // Wider to fit text
 				this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255));
 				this->freezeAbilityButton.setPosition(
 					this->window->getSize().x - 170.f,  // Right side
