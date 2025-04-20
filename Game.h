@@ -55,10 +55,20 @@ private:
     float freezeDuration;
     float normalEnemySpeed;
     float frozenEnemySpeed;
-    int freezeCharges = 0;
+    int freezeCharges;
     const int FREEZE_COST = 10;
-    bool showingPurchaseFeedback = false;
-    const float FEEDBACK_DURATION = .5f; // Seconds to show "PURCHASED"
+    bool showingPurchaseFeedback;
+    const float FEEDBACK_DURATION = .5f;
+    bool freezeAbilityInitialized;
+
+    // Confirmation dialog
+    bool showingConfirmation;
+    sf::RectangleShape confirmationPanel;
+    sf::Text confirmationText;
+    sf::RectangleShape confirmYesButton;
+    sf::Text confirmYesText;
+    sf::RectangleShape confirmNoButton;
+    sf::Text confirmNoText;
 
     // Game objects
     sf::RectangleShape enemy;
@@ -79,6 +89,8 @@ private:
     sf::Text pauseButtonText;
     sf::RectangleShape resumeButton;
     sf::Text resumeButtonText;
+    sf::RectangleShape mainMenuButton;
+    sf::Text mainMenuButtonText;
     sf::RectangleShape exitButton;
     sf::Text exitButtonText;
 
@@ -105,11 +117,12 @@ private:
     void initFonts();
     void initText();
     void initEnemies();
-
     void initShop();
     void initPauseMenu();
     void initGameUI();
     void initMenuUI();
+    void initConfirmationDialog();
+    void initFreezeButton();
     void loadGameData();
     void loadHighscore();
     void saveGameState();  // Added this line
@@ -121,6 +134,7 @@ private:
     void updateEnemies();
     void updatePowerups();
     void updateShop();
+    void updateUI();
     void handleGameObjectClicks();
 
     // Render functions
@@ -128,6 +142,7 @@ private:
     void renderEnemies(sf::RenderTarget& target);
     void renderMenu(sf::RenderTarget& target);
     void renderShop(sf::RenderTarget& target);
+    void renderConfirmationDialog(sf::RenderTarget& target);
 
 public:
     // Constructors / Destructors
@@ -145,5 +160,4 @@ public:
 
     // Game logic
     void spawnEnemy();
-    void updateUI();
 };

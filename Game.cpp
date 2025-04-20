@@ -278,75 +278,52 @@ void Game::updateShop()
 
 void Game::updateUI()
 {
-	// Skip UI updates if the game is paused
-	if (this->isPaused)
-		return;
+    if (this->isPaused)
+        return;
 
-	// Add null checks for UI elements
-	if (!this->fontLoaded) return; // Add fontLoaded flag if needed
+    // Calculate accuracy
+    this->accuracy = (this->shotsFired > 0) ?
+        static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
 
-	// Calculate accuracy (using class member variables)
-	this->accuracy = (this->shotsFired > 0) ?
-		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
+    // Update accuracy bar
+    float percent = this->accuracy / 100.f;
+    float maxBarWidth = 200.f;
+    this->accuracyBar.setSize(sf::Vector2f(percent * maxBarWidth, this->accuracyBar.getSize().y));
 
-	// Update accuracy bar width
-	float percent = this->accuracy / 100.f;
-	float maxBarWidth = 200.f; // max width of the bar
-	this->accuracyBar.setSize(sf::Vector2f(percent * maxBarWidth, this->accuracyBar.getSize().y));
+    // Update freeze button if we have the ability
+    if (this->hasFreezeAbility) {
+        if (this->freezeActive) {
+            this->freezeAbilityButton.setFillColor(sf::Color(50, 50, 150));
+            
+            int secondsLeft = static_cast<int>(std::ceil(this->freezeTimer));
+            this->freezeAbilityButtonText.setString(std::to_string(secondsLeft) + "s");
+        }
+        else {
+            this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255));
+            this->freezeAbilityButtonText.setString("FREEZE (" + std::to_string(this->freezeCharges) + ")");
+        }
+        
+        sf::FloatRect textRect = this->freezeAbilityButtonText.getLocalBounds();
+        this->freezeAbilityButtonText.setOrigin(
+            textRect.left + textRect.width/2.0f,
+            textRect.top + textRect.height/2.0f
+        );
+        this->freezeAbilityButtonText.setPosition(
+            this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x/2.0f,
+            this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y/2.0f
+        );
+    }
 
-	// Change color based on accuracy
-	if (this->accuracy >= 75.f) {
-		this->accuracyBar.setFillColor(sf::Color::Green);
-		this->uiText.setFillColor(sf::Color::Green);
-	}
-	else if (this->accuracy >= 50.f) {
-		this->accuracyBar.setFillColor(sf::Color::Yellow);
-		this->uiText.setFillColor(sf::Color::Yellow);
-	}
-	else {
-		this->accuracyBar.setFillColor(sf::Color::Red);
-		this->uiText.setFillColor(sf::Color::Red);
-	}
+    // Update the text display
+    std::stringstream ss;
+    ss << "Points: " << this->points << "\n"
+       << "Currency: " << this->currency << "\n"
+       << "Health: " << this->health << "\n"
+       << std::fixed << std::setprecision(1) << "Accuracy: " << this->accuracy << "%\n"
+       << "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
+       << "High Score: " << this->highScore << "\n";
 
-	// Update freeze ability button color based on status
-	if (this->freezeActive) {
-		this->freezeAbilityButton.setFillColor(sf::Color(50, 50, 150)); // Dark blue when active
-
-		// Update button text to show remaining time
-		int secondsLeft = static_cast<int>(std::ceil(this->freezeTimer));
-		this->freezeAbilityButtonText.setString(std::to_string(secondsLeft) + "s");
-
-		// Recenter text
-		sf::FloatRect abilityTextBounds = this->freezeAbilityButtonText.getLocalBounds();
-		this->freezeAbilityButtonText.setOrigin(abilityTextBounds.width / 2, abilityTextBounds.height / 2);
-		this->freezeAbilityButtonText.setPosition(
-			this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x / 2.f,
-			this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y / 2.f - 3.f
-		);
-	}
-	else if (this->hasFreezeAbility) {
-		this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255)); // Normal blue when available
-		this->freezeAbilityButtonText.setString("FREEZE");
-
-		// Recenter text
-		sf::FloatRect abilityTextBounds = this->freezeAbilityButtonText.getLocalBounds();
-		this->freezeAbilityButtonText.setOrigin(abilityTextBounds.width / 2, abilityTextBounds.height / 2);
-		this->freezeAbilityButtonText.setPosition(
-			this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x / 2.f,
-			this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y / 2.f - 3.f
-		);
-	}
-
-	// Update the text display
-	std::stringstream ss;
-	ss << "Points: " << this->points << "\n"
-		<< "Currency: " << this->currency << "\n"
-		<< "Health: " << this->health << "\n"
-		<< std::fixed << std::setprecision(1) << "Accuracy: " << this->accuracy << "%\n"
-		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
-		<< "High Score: " << this->highScore << "\n";
-
-	this->uiText.setString(ss.str());
+    this->uiText.setString(ss.str());
 }
 
 void Game::updateText()
@@ -699,6 +676,8 @@ void Game::pollEvents()
 						{
 							this->currency -= FREEZE_COST;
 							this->freezeCharges++;
+							this->hasFreezeAbility = true;  // Make sure this is set
+							this->initFreezeButton();      // Initialize the button
 							this->showingPurchaseFeedback = true;
 							this->purchaseFeedbackClock.restart();
 							saveGameState();
@@ -759,11 +738,11 @@ void Game::saveGameState()
 		outFile << this->highScore << " "
 			<< this->bestAccuracy << " "
 			<< this->currency << " "
-			<< (this->hasFreezeAbility ? 1 : 0);
+			<< (this->hasFreezeAbility ? 1 : 0) << " "
+			<< this->freezeCharges;
 		outFile.close();
 	}
 }
-
 void Game::updateMousePositions()
 {
 	/**
@@ -848,7 +827,7 @@ void Game::render()
 		this->window->draw(this->pauseButtonText);
 
 		// Draw freeze ability button if player has purchased it
-		if (this->hasFreezeAbility) {
+		if (this->hasFreezeAbility && this->freezeCharges > 0) {
 			this->window->draw(this->freezeAbilityButton);
 			this->window->draw(this->freezeAbilityButtonText);
 		}
@@ -932,22 +911,17 @@ void Game::loadGameData()
 	{
 		int hasFreeze = 0;
 		inFile >> this->highScore >> this->bestAccuracy
-			>> this->currency >> hasFreeze;
+			>> this->currency >> hasFreeze >> this->freezeCharges;
 		this->hasFreezeAbility = (hasFreeze == 1);
 		inFile.close();
+
+		if (this->hasFreezeAbility) {
+			this->initFreezeButton();
+		}
 	}
 	else
 	{
 		loadHighscore();
-	}
-
-	// Update shop UI if we already have the freeze ability
-	if (this->hasFreezeAbility) {
-		this->freezeButton.setFillColor(sf::Color(50, 50, 120));
-		this->freezeButtonText.setString("PURCHASED");
-		this->freezePrice.setString("OWNED");
-		this->freezePrice.setFillColor(sf::Color::Green);
-		centerText(this->freezeButtonText, this->freezeButton, 0.f, 0.f);
 	}
 }
 
@@ -1028,12 +1002,28 @@ void Game::initGameUI()
 	// Accuracy bar
 	this->accuracyBarBack.setSize(sf::Vector2f(200.f, 20.f));
 	this->accuracyBarBack.setFillColor(sf::Color(50, 50, 50, 200));
-	this->accuracyBarBack.setPosition(0.f, 180.f);
+	this->accuracyBarBack.setPosition(0.f, 205.f);
 
 	// Accuracy bar foreground
 	this->accuracyBar.setSize(sf::Vector2f(0.f, 20.f)); // Start empty
 	this->accuracyBar.setFillColor(sf::Color::Green);
-	this->accuracyBar.setPosition(0.f, 180.f);
+	this->accuracyBar.setPosition(0.f, 205.f);
+
+	// Pause button (top right - unchanged)
+	this->pauseButton.setSize(sf::Vector2f(100.f, 50.f));
+	this->pauseButton.setFillColor(sf::Color(100, 100, 255));
+	this->pauseButton.setPosition(this->videoMode.width - 120.f, 20.f);
+
+	// Freeze ability button (below accuracy bar)
+	this->freezeAbilityButton.setSize(sf::Vector2f(100.f, 50.f));
+	this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255));
+	this->freezeAbilityButton.setPosition(20.f, 320.f);  // 40px below accuracy bar (280+20+20)
+
+	this->freezeAbilityButtonText.setFont(this->font);
+	this->freezeAbilityButtonText.setString("FREEZE");
+	this->freezeAbilityButtonText.setCharacterSize(20);
+	this->freezeAbilityButtonText.setFillColor(sf::Color::White);
+	centerText(this->freezeAbilityButtonText, this->freezeAbilityButton);
 
 	// Game text
 	this->uiText.setFont(this->font);
@@ -1188,3 +1178,31 @@ void Game::handleGameObjectClicks()
 		}
 	}
 }
+void Game::initFreezeButton()
+		{
+			if (this->hasFreezeAbility) {
+				this->freezeAbilityButton.setSize(sf::Vector2f(150.f, 50.f));  // Wider to fit text
+				this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255));
+				this->freezeAbilityButton.setPosition(
+					this->window->getSize().x - 170.f,  // Right side
+					20.f                                // Top
+				);
+
+				this->freezeAbilityButtonText.setFont(this->font);
+				this->freezeAbilityButtonText.setString("FREEZE (" + std::to_string(this->freezeCharges) + ")");
+				this->freezeAbilityButtonText.setCharacterSize(24);
+				this->freezeAbilityButtonText.setFillColor(sf::Color::White);
+
+				// Center text in button
+				sf::FloatRect textRect = this->freezeAbilityButtonText.getLocalBounds();
+				this->freezeAbilityButtonText.setOrigin(
+					textRect.left + textRect.width / 2.0f,
+					textRect.top + textRect.height / 2.0f
+				);
+				this->freezeAbilityButtonText.setPosition(
+					this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x / 2.0f,
+					this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y / 2.0f
+				);
+			}
+		}
+
