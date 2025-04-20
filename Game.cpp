@@ -1,182 +1,75 @@
 #include "Game.h"
 
+// ============== Initialization Functions ==============
+
+Game::Game()
+{
+	this->initVariables();
+	this->initWindow();
+	this->initFonts();
+	this->initText();
+	this->initEnemies();
+	this->initPauseMenu();
+	this->initGameUI();
+	this->initMenuUI();
+	this->initShop();
+	this->gameState = MENU;
+}
+
+Game::~Game()
+{
+	delete this->window;
+}
+
 //Private functions
 void Game::initVariables()
 {
-	// Other initializations...
-
-	//Set initial game state
-	this->gameState = MENU;  // Start in menu state
-	this->isPaused = false;
-	this->window = nullptr;
-
-	// Initialize pause overlay
-	this->pauseOverlay.setSize(sf::Vector2f(this->videoMode.width, this->videoMode.height));
-	this->pauseOverlay.setFillColor(sf::Color(0, 0, 0, 150));  // Semi-transparent black
-
-	// Initialize pause button (simple square in the top-right corner)
-	this->pauseButton.setSize(sf::Vector2f(100.f, 50.f));
-	this->pauseButton.setFillColor(sf::Color(100, 100, 255));
-	this->pauseButton.setPosition(this->videoMode.width - 120.f, 20.f);  // Top-right corner
-
-	// Initialize pause button text
-	this->pauseButtonText.setFont(this->font);
-	this->pauseButtonText.setString("Pause");
-	this->pauseButtonText.setCharacterSize(30);
-	this->pauseButtonText.setFillColor(sf::Color::White);
-
-	// Center the text on the button
-	sf::FloatRect pauseTextBounds = this->pauseButtonText.getLocalBounds();
-	this->pauseButtonText.setOrigin(
-		pauseTextBounds.left + pauseTextBounds.width / 2.f,
-		pauseTextBounds.top + pauseTextBounds.height / 2.f
-	);
-
-	this->pauseButtonText.setPosition(
-		this->pauseButton.getPosition().x + this->pauseButton.getSize().x / 2.f,
-		this->pauseButton.getPosition().y + this->pauseButton.getSize().y / 2.f
-	);
-
-	// Initialize exit button (perfectly centered)
-	this->exitButton.setSize(sf::Vector2f(200.f, 50.f));
-	this->exitButton.setFillColor(sf::Color(255, 0, 0));  // Red button
-	this->exitButton.setPosition(
-		(1080.f - 200.f) / 2.f,  // X = 440 (centered horizontally)
-		(920.f - 50.f) / 2.f     // Y = 435 (centered vertically)
-	);
-
-	// Exit button text (perfectly centered on button)
-	this->exitButtonText.setFont(this->font);
-	this->exitButtonText.setString("Exit");
-	this->exitButtonText.setCharacterSize(32);
-	this->exitButtonText.setFillColor(sf::Color::White);
-
-	// Center the text inside the button
-	sf::FloatRect exitButtonTextBounds = this->exitButtonText.getLocalBounds();
-	this->exitButtonText.setOrigin(
-		exitButtonTextBounds.width / 2.f,
-		exitButtonTextBounds.height / 2.f
-	);
-	this->exitButtonText.setPosition(
-		this->exitButton.getPosition().x + this->exitButton.getSize().x / 2.f,
-		this->exitButton.getPosition().y + this->exitButton.getSize().y / 2.f
-	);
-
-	// Initialize resume button (centered above exit button)
-	this->resumeButton.setSize(sf::Vector2f(200.f, 50.f));
-	this->resumeButton.setFillColor(sf::Color(0, 255, 0));  // Green button
-	this->resumeButton.setPosition(
-		(1080.f - 200.f) / 2.f,      // Same X as exit button
-		(920.f - 50.f) / 2.f - 70.f  // 70px above exit button (Y = 365)
-	);
-
-	// Resume button text (centered on button)
-	this->resumeButtonText.setFont(this->font);
-	this->resumeButtonText.setString("Resume");
-	this->resumeButtonText.setCharacterSize(32);
-	this->resumeButtonText.setFillColor(sf::Color::White);
-
-	// Center the text inside the button
-	sf::FloatRect resumeButtonTextBounds = this->resumeButtonText.getLocalBounds();
-	this->resumeButtonText.setOrigin(
-		resumeButtonTextBounds.width / 2.f,
-		resumeButtonTextBounds.height / 2.f
-	);
-	this->resumeButtonText.setPosition(
-		this->resumeButton.getPosition().x + this->resumeButton.getSize().x / 2.f,
-		this->resumeButton.getPosition().y + this->resumeButton.getSize().y / 2.f
-	);
-
-	//Game logic
+	this->window = new sf::RenderWindow(sf::VideoMode(920, 1080), "Game Window");
+	
+	// Game state
+	this->gameState = MENU;
 	this->endGame = false;
+	this->isPaused = false;
+	this->shopOpen = false;
+	this->mouseHeld = false;
+
+	// Game stats
 	this->points = 0;
 	this->health = 20;
-	this->enemySpawnTimerMax = 20.f;
-	this->enemySpawnTimer = this->enemySpawnTimerMax;
-	this->maxEnemies = 5;
-	this->mouseHeld = false;
 	this->shotsFired = 0;
 	this->shotsHit = 0;
 	this->accuracy = 0.f;
 	this->bestAccuracy = 0.f;
 	this->highScore = 0;
 
-	this->accuracyBarBack.setSize(sf::Vector2f(200.f, 20.f));
-	this->accuracyBarBack.setFillColor(sf::Color(50, 50, 50, 200));
-	this->accuracyBarBack.setPosition(0.f, 180.f);
+	// Enemy system
+	this->enemySpawnTimerMax = 20.f;
+	this->enemySpawnTimer = this->enemySpawnTimerMax;
+	this->maxEnemies = 5;
 
-	this->accuracyBar.setSize(sf::Vector2f(200.f, 20.f));
-	this->accuracyBar.setFillColor(sf::Color::Green);
-	this->accuracyBar.setPosition(0.f, 180.f);
+	// Powerup system
+	this->currency = 0;
+	this->hasFreezeAbility = false;
+	this->freezeActive = false;
+	this->freezeTimer = 0.f;
+	this->freezeDuration = 10.f;
+	this->normalEnemySpeed = 5.f;
+	this->frozenEnemySpeed = 2.5f;
 
-	//Game objects
-	this->enemy.setSize(sf::Vector2f(100.f, 100.f));
-	this->enemy.setFillColor(sf::Color::Cyan);
-	this->enemy.setPosition(0.f, 0.f);
-	//this->enemy.setOutlineColor(sf::Color::Green);
-	//this->enemy.setOutlineThickness(1.f);
+	// Initialize UI elements
+	initPauseMenu();
+	initGameUI();
+	initMenuUI();
+	initShop();
 
-	// Start Button Setup
-	this->startButton.setSize(sf::Vector2f(200.f, 60.f));
-	this->startButton.setFillColor(sf::Color(100, 100, 255));
-	this->startButton.setPosition(
-		this->videoMode.width / 920.f - this->startButton.getSize().x / 2.f,
-		this->videoMode.height / 2.f - this->startButton.getSize().y / 2.f
-	);
-
-	this->startButtonText.setFont(this->font);
-	this->startButtonText.setString("START");
-	this->startButtonText.setCharacterSize(28);
-	this->startButtonText.setFillColor(sf::Color::White);
-
-	// Center the text on the button
-	sf::FloatRect textBounds = this->startButtonText.getLocalBounds();
-	this->startButtonText.setOrigin(textBounds.width / 2, textBounds.height / 2);
-	this->startButtonText.setPosition(
-		this->startButton.getPosition().x + this->startButton.getSize().x / 2.f,
-		this->startButton.getPosition().y + this->startButton.getSize().y / 2.f - 5.f
-	);
-
-	//Enhanced Load high score on startup
-	std::ifstream inFile("highscore.txt");
-	if (inFile.is_open())
-	{
-		std::string line;
-		if (std::getline(inFile, line)) {
-			std::istringstream iss(line);
-			if (!(iss >> this->highScore >> this->bestAccuracy)) {
-				// File exists but data is invalid
-				this->highScore = 0;
-				this->bestAccuracy = 0.f;
-			}
-			// Validate loaded values
-			if (this->highScore < 0) this->highScore = 0;
-			if (this->bestAccuracy < 0.f) this->bestAccuracy = 0.f;
-			if (this->bestAccuracy > 100.f) this->bestAccuracy = 100.f;
-		}
-		inFile.close();
-	}
-	else
-	{
-		// File doesn't exist - create with default values
-		this->highScore = 0;
-		this->bestAccuracy = 0.f;
-
-		std::ofstream outFile("highscore.txt");
-		if (outFile.is_open()) {
-			outFile << this->highScore << " " << this->bestAccuracy;
-			outFile.close();
-		}
-		else {
-			std::cerr << "Warning: Could not create highscore.txt\n";
-		}
-	}
+	// Load saved data
+	loadGameData();
 }
 
 void Game::initWindow()
 {
-	this->videoMode.height = 920;
-	this->videoMode.width = 1080;
+	this->videoMode.height = 1080;
+	this->videoMode.width = 920;
 	//this->videoMode.getDesktopMode; // optional if you dont want a auto custom window
 	this->window = new sf::RenderWindow(this->videoMode, "Aim trainer", sf::Style::Titlebar | sf::Style::Close);
 	this->window->setFramerateLimit(60);
@@ -213,33 +106,6 @@ void Game::initEnemies()
 	this->enemy.setFillColor(sf::Color::Cyan);
 	//this->enemy.setOutlineColor(sf::Color::Green);
 	//this->enemy.setOutlineThickness(1.f);
-}
-
-//Constructors / Destructors
-Game::Game()
-{
-	this->initVariables();
-	this->initWindow();
-	this->initFonts();
-	this->initText();
-	this->initEnemies();
-	this->gameState = MENU;
-}
-
-Game::~Game()
-{
-	delete this->window;
-}
-
-//Accessors
-bool Game::getWindowIsOpen() const
-{
-	return this->window->isOpen();
-}
-
-bool Game::getEndGame() const
-{
-	return this->endGame;
 }
 
 //Functions
@@ -311,10 +177,14 @@ void Game::updateEnemies()
 			this->enemySpawnTimer += 1.f;
 	}
 
+	// Determine current enemy speed based on freeze status
+	float currentEnemySpeed = this->freezeActive ? this->frozenEnemySpeed : this->normalEnemySpeed;
+	float currentHealthBlockSpeed = this->freezeActive ? 2.f : 4.f; // Also slow health blocks
+
 	// Health blocks
 	for (size_t i = 0; i < this->healthBlocks.size(); i++)
 	{
-		this->healthBlocks[i].move(0.f, 4.f); //Update position
+		this->healthBlocks[i].move(0.f, currentHealthBlockSpeed); //Update position with current speed
 		if (this->healthBlocks[i].getPosition().y > this->window->getSize().y)
 		{
 			this->healthBlocks.erase(this->healthBlocks.begin() + i);
@@ -325,7 +195,7 @@ void Game::updateEnemies()
 	// Move Enemies
 	for (int i = 0; i < this->enemies.size(); i++)
 	{
-		this->enemies[i].move(0.f, 5.f);
+		this->enemies[i].move(0.f, currentEnemySpeed); // Use current speed
 		if (this->enemies[i].getPosition().y > this->window->getSize().y)
 		{
 			this->enemies.erase(this->enemies.begin() + i);
@@ -374,18 +244,22 @@ void Game::updateEnemies()
 				{
 					this->shotsHit++;
 					// Gain points based on the enemy color
+					int pointsEarned = 0;
 					if (this->enemies[i].getFillColor() == sf::Color::Magenta)
-						this->points += 10;
+						pointsEarned = 10;
 					else if (this->enemies[i].getFillColor() == sf::Color::Blue)
-						this->points += 7;
+						pointsEarned = 7;
 					else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
-						this->points += 5;
+						pointsEarned = 5;
 					else if (this->enemies[i].getFillColor() == sf::Color::Red)
-						this->points += 3;
+						pointsEarned = 3;
 					else if (this->enemies[i].getFillColor() == sf::Color::Green)
-						this->points += 1;
+						pointsEarned = 1;
 
-					std::cout << "Points: " << this->points << "\n";
+					this->points += pointsEarned;
+					this->currency += pointsEarned; // Add to currency too
+
+					std::cout << "Points: " << this->points << " Currency: " << this->currency << "\n";
 
 					// Delete the enemy
 					this->enemies.erase(this->enemies.begin() + i);
@@ -396,80 +270,83 @@ void Game::updateEnemies()
 	}
 }
 
-void Game::pollEvents()
+void Game::updateShop()
 {
-	while (this->window->pollEvent(this->ev))
-	{
-		switch (this->ev.type)
-		{
-		case sf::Event::Closed:
-			this->window->close();
-			break;
-
-		case sf::Event::KeyPressed:
-			// Toggle pause with ESC key
-			if (this->ev.key.code == sf::Keyboard::Escape &&
-				this->gameState == GAME)
-			{
-				this->isPaused = !this->isPaused;
-			}
-			break;
-
-		case sf::Event::MouseButtonPressed:
-			if (this->ev.mouseButton.button == sf::Mouse::Left)
-			{
-				// Menu screen button
-				if (this->gameState == MENU &&
-					this->startButton.getGlobalBounds().contains(this->mousePosView))
-				{
-					this->gameState = GAME;
-					this->isPaused = false;
-					this->endGame = false;
-				}
-
-				// Pause button (top-right during gameplay)
-				if (this->gameState == GAME &&
-					!this->isPaused &&
-					this->pauseButton.getGlobalBounds().contains(this->mousePosView))
-				{
-					this->isPaused = true;
-				}
-
-				// Resume button (in pause menu)
-				if (this->isPaused &&
-					this->resumeButton.getGlobalBounds().contains(this->mousePosView))
-				{
-					this->isPaused = false;
-				}
-
-				// Exit button (in pause menu)
-				if (this->isPaused &&
-					this->exitButton.getGlobalBounds().contains(this->mousePosView))
-				{
-					this->window->close();
-				}
-			}
-			break;
-
-		case sf::Event::MouseButtonReleased:
-			if (this->ev.mouseButton.button == sf::Mouse::Left)
-				this->mouseHeld = false;
-			break;
-		}
-	}
+	// Add shop update logic here if needed
+	// Currently empty as no continuous shop updates are required
 }
 
-void Game::updateMousePositions()
+void Game::updateUI()
 {
-	/**
-	@ return void
+	// Skip UI updates if the game is paused
+	if (this->isPaused)
+		return;
 
-	Updates the mouse positions:
-		- Mouse position realtive to window (Vector2i)
-	*/
+	// Add null checks for UI elements
+	if (!this->fontLoaded) return; // Add fontLoaded flag if needed
 
-	this->mousePosWindow = sf::Mouse::getPosition(*this->window);
-	this->mousePosView = this->window->mapPixelToCoords(this->mousePosWindow);
+	// Calculate accuracy (using class member variables)
+	this->accuracy = (this->shotsFired > 0) ?
+		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
+
+	// Update accuracy bar width
+	float percent = this->accuracy / 100.f;
+	float maxBarWidth = 200.f; // max width of the bar
+	this->accuracyBar.setSize(sf::Vector2f(percent * maxBarWidth, this->accuracyBar.getSize().y));
+
+	// Change color based on accuracy
+	if (this->accuracy >= 75.f) {
+		this->accuracyBar.setFillColor(sf::Color::Green);
+		this->uiText.setFillColor(sf::Color::Green);
+	}
+	else if (this->accuracy >= 50.f) {
+		this->accuracyBar.setFillColor(sf::Color::Yellow);
+		this->uiText.setFillColor(sf::Color::Yellow);
+	}
+	else {
+		this->accuracyBar.setFillColor(sf::Color::Red);
+		this->uiText.setFillColor(sf::Color::Red);
+	}
+
+	// Update freeze ability button color based on status
+	if (this->freezeActive) {
+		this->freezeAbilityButton.setFillColor(sf::Color(50, 50, 150)); // Dark blue when active
+
+		// Update button text to show remaining time
+		int secondsLeft = static_cast<int>(std::ceil(this->freezeTimer));
+		this->freezeAbilityButtonText.setString(std::to_string(secondsLeft) + "s");
+
+		// Recenter text
+		sf::FloatRect abilityTextBounds = this->freezeAbilityButtonText.getLocalBounds();
+		this->freezeAbilityButtonText.setOrigin(abilityTextBounds.width / 2, abilityTextBounds.height / 2);
+		this->freezeAbilityButtonText.setPosition(
+			this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x / 2.f,
+			this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y / 2.f - 3.f
+		);
+	}
+	else if (this->hasFreezeAbility) {
+		this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255)); // Normal blue when available
+		this->freezeAbilityButtonText.setString("FREEZE");
+
+		// Recenter text
+		sf::FloatRect abilityTextBounds = this->freezeAbilityButtonText.getLocalBounds();
+		this->freezeAbilityButtonText.setOrigin(abilityTextBounds.width / 2, abilityTextBounds.height / 2);
+		this->freezeAbilityButtonText.setPosition(
+			this->freezeAbilityButton.getPosition().x + this->freezeAbilityButton.getSize().x / 2.f,
+			this->freezeAbilityButton.getPosition().y + this->freezeAbilityButton.getSize().y / 2.f - 3.f
+		);
+	}
+
+	// Update the text display
+	std::stringstream ss;
+	ss << "Points: " << this->points << "\n"
+		<< "Currency: " << this->currency << "\n"
+		<< "Health: " << this->health << "\n"
+		<< std::fixed << std::setprecision(1) << "Accuracy: " << this->accuracy << "%\n"
+		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
+		<< "High Score: " << this->highScore << "\n";
+
+	this->uiText.setString(ss.str());
 }
 
 void Game::updateText()
@@ -507,45 +384,20 @@ void Game::updateText()
 	this->uiText.setString(ss.str());
 }
 
-void Game::update()
+void Game::centerText(sf::Text& text, const sf::RectangleShape& shape, float xOffset, float yOffset)
 {
-	this->pollEvents();
-	this->updateMousePositions(); // Always update for button interaction
-
-	if (!this->isPaused)  // Only update gameplay logic when unpaused
-	{
-		if (this->gameState == GAME && !this->endGame)
-		{
-			this->updateText();
-			this->updateEnemies();
-		}
-
-		if (this->gameState == GAME && this->health <= 0)
-		{
-			this->endGame = true;
-
-			if (this->accuracy > this->bestAccuracy)
-				this->bestAccuracy = this->accuracy;
-
-			if (this->points > this->highScore)
-			{
-				this->highScore = this->points;
-				std::ofstream outFile("highscore.txt");
-				if (outFile.is_open())
-				{
-					outFile << this->highScore << " " << this->bestAccuracy;
-					outFile.close();
-				}
-			}
-		}
-	}
+	sf::FloatRect textBounds = text.getLocalBounds();
+	text.setOrigin(textBounds.width / 2, textBounds.height / 2);
+	text.setPosition(
+		shape.getPosition().x + shape.getSize().x / 2.f + xOffset,
+		shape.getPosition().y + shape.getSize().y / 2.f + yOffset
+	);
 }
 
 void Game::renderText(sf::RenderTarget& target)
 {
 	target.draw(this->uiText);
 }
-
 
 void Game::renderEnemies(sf::RenderTarget& target)
 {
@@ -607,75 +459,367 @@ void Game::renderMenu(sf::RenderTarget& target)
 {
 	if (this->gameState == MENU)
 	{
-		// Render start button, etc. for menu state
+		// Render title
+		sf::Text gameTitle;
+		gameTitle.setFont(this->font);
+		gameTitle.setString("AIM TRAINER");
+		gameTitle.setCharacterSize(60);
+		gameTitle.setFillColor(sf::Color::White);
+
+		// Center the title
+		sf::FloatRect titleBounds = gameTitle.getLocalBounds();
+		gameTitle.setOrigin(titleBounds.width / 2, titleBounds.height / 2);
+		gameTitle.setPosition(
+			this->videoMode.width / 2.f,
+			this->videoMode.height / 4.f
+		);
+		target.draw(gameTitle);
+
+		// Render currency display on main menu
+		sf::Text currencyText;
+		currencyText.setFont(this->font);
+		currencyText.setString("Currency: " + std::to_string(this->currency));
+		currencyText.setCharacterSize(24);
+		currencyText.setFillColor(sf::Color::Yellow);
+		currencyText.setPosition(20.f, 20.f);
+		target.draw(currencyText);
+
+		// Render start button
 		target.draw(this->startButton);
 		target.draw(this->startButtonText);
-	}
 
-	if (this->gameState == GAME && !this->isPaused)
-	{
-		// Rendering game objects
-		target.draw(this->accuracyBarBack);
-		target.draw(this->accuracyBar);
-		target.draw(this->uiText);
+		// Render shop button
+		target.draw(this->shopButton);
+		target.draw(this->shopButtonText);
 
-		// Render enemies and health blocks
-		renderEnemies(target);
-	}
+		//Render exit button
+		target.draw(this->exitButton);      
+		target.draw(this->exitButtonText);  
 
-	if (this->isPaused)
-	{
-		// Render pause overlay
-		target.draw(this->pauseOverlay);
-
-		// Render the resume button
-		target.draw(this->resumeButton);
-		target.draw(this->resumeButtonText);
-
-		// Render exit button
-		target.draw(this->exitButton);
-		target.draw(this->exitButtonText);
+		// If shop is open, render shop panel
+		if (this->shopOpen) {
+			this->renderShop(target);
+		}
 	}
 }
 
-void Game::updateUI()
+void Game::initShop()
 {
-	// Skip UI updates if the game is paused
-	if (this->isPaused)
-		return;
+	// Shop panel (background) - centered in window
+	this->shopPanel.setSize(sf::Vector2f(500.f, 400.f));
+	this->shopPanel.setFillColor(sf::Color(30, 30, 60, 230));
+	this->shopPanel.setOutlineColor(sf::Color::White);
+	this->shopPanel.setOutlineThickness(2.f);
+	this->shopPanel.setPosition(
+		(this->window->getSize().x - this->shopPanel.getSize().x) / 2.f,  // Center X
+		(this->window->getSize().y - this->shopPanel.getSize().y) / 2.f   // Center Y
+	);
 
-	// Calculate accuracy (using class member variables)
-	this->accuracy = (this->shotsFired > 0) ?
-		static_cast<float>(this->shotsHit) / this->shotsFired * 100.f : 0.f;
+	// Freeze power-up button
+	this->freezeButton.setSize(sf::Vector2f(400.f, 60.f));
+	this->freezeButton.setFillColor(
+		this->hasFreezeAbility ? sf::Color(50, 50, 120) : sf::Color(100, 100, 255)
+	);
+	this->freezeButton.setPosition(
+		this->shopPanel.getPosition().x + (this->shopPanel.getSize().x - this->freezeButton.getSize().x) / 2.f,
+		this->shopPanel.getPosition().y + 100.f
+	);
 
-	// Update accuracy bar width
-	float percent = this->accuracy / 100.f;
-	float maxBarWidth = 200.f; // max width of the bar
-	this->accuracyBar.setSize(sf::Vector2f(percent * maxBarWidth, this->accuracyBar.getSize().y));
+	// Freeze button text
+	this->freezeButtonText.setFont(this->font);
+	this->freezeButtonText.setString(
+		this->hasFreezeAbility ? "PURCHASED" : "FREEZE POWER-UP"
+	);
+	this->freezeButtonText.setCharacterSize(28);
+	this->freezeButtonText.setFillColor(sf::Color::White);
+	centerText(this->freezeButtonText, this->freezeButton, 0.f, 0.f);
 
-	// Change color based on accuracy
-	if (this->accuracy >= 75.f) {
-		this->accuracyBar.setFillColor(sf::Color::Green);
-		this->uiText.setFillColor(sf::Color::Green);
+	// Freeze price text
+	this->freezePrice.setFont(this->font);
+	this->freezePrice.setString(
+		this->hasFreezeAbility ? "OWNED" : "500"
+	);
+	this->freezePrice.setCharacterSize(24);
+	this->freezePrice.setFillColor(
+		this->hasFreezeAbility ? sf::Color::Green : sf::Color::Yellow
+	);
+	centerText(this->freezePrice, this->freezeButton, 0.f, 30.f);
+}
+
+void Game::renderShop(sf::RenderTarget& target)
+{
+	// Draw shop background panel (drawn first)
+	target.draw(this->shopPanel);
+
+	// Set button appearance based on purchase state
+	if (showingPurchaseFeedback)
+	{
+		// Temporary "success" appearance (green)
+		this->freezeButton.setFillColor(sf::Color(0, 200, 0));
+		this->freezeButtonText.setString("PURCHASED!");
+		this->freezePrice.setString("+1 CHARGE");
 	}
-	else if (this->accuracy >= 50.f) {
-		this->accuracyBar.setFillColor(sf::Color::Yellow);
-		this->uiText.setFillColor(sf::Color::Yellow);
+	else if (this->currency < FREEZE_COST)
+	{
+		// Can't afford appearance (grayed out)
+		this->freezeButton.setFillColor(sf::Color(100, 100, 100));
+		this->freezeButtonText.setString(freezeCharges > 0 ?
+			"MORE CHARGES (" + std::to_string(freezeCharges) + ")" :
+			"BUY FREEZE");
+		this->freezePrice.setString(std::to_string(FREEZE_COST));
 	}
-	else {
-		this->accuracyBar.setFillColor(sf::Color::Red);
-		this->uiText.setFillColor(sf::Color::Red);
+	else
+	{
+		// Normal purchasable appearance (blue)
+		this->freezeButton.setFillColor(sf::Color(100, 100, 255));
+		this->freezeButtonText.setString(freezeCharges > 0 ?
+			"BUY MORE (" + std::to_string(freezeCharges) + ")" :
+			"BUY FREEZE");
+		this->freezePrice.setString(std::to_string(FREEZE_COST));
 	}
 
-	// Update the text display (moved from updateText() for better organization)
-	std::stringstream ss;
-	ss << "Points: " << this->points << "\n"
-		<< "Health: " << this->health << "\n"
-		<< std::fixed << std::setprecision(1) << "Accuracy: " << this->accuracy << "%\n"
-		<< "Best Accuracy: " << static_cast<int>(this->bestAccuracy) << "%\n"
-		<< "High Score: " << this->highScore << "\n";
+	// Center all text elements
+	centerText(this->freezeButtonText, this->freezeButton, 0.f, 0.f);
+	centerText(this->freezePrice, this->freezeButton, 0.f, 30.f);
 
-	this->uiText.setString(ss.str());
+	// Draw interactive elements
+	target.draw(this->freezeButton);
+	target.draw(this->freezeButtonText);
+	target.draw(this->freezePrice);
+
+	// Draw shop title
+	sf::Text shopTitle;
+	shopTitle.setFont(this->font);
+	shopTitle.setString("POWER-UP SHOP");
+	shopTitle.setCharacterSize(32);
+	shopTitle.setFillColor(sf::Color::White);
+
+	sf::FloatRect titleBounds = shopTitle.getLocalBounds();
+	shopTitle.setOrigin(titleBounds.width / 2, titleBounds.height / 2);
+	shopTitle.setPosition(
+		this->shopPanel.getPosition().x + this->shopPanel.getSize().x / 2.f,
+		this->shopPanel.getPosition().y + 30.f
+	);
+	target.draw(shopTitle);
+
+	// Draw currency display
+	sf::Text currencyText;
+	currencyText.setFont(this->font);
+	currencyText.setString("Currency: " + std::to_string(this->currency));
+	currencyText.setCharacterSize(24);
+	currencyText.setFillColor(sf::Color::Yellow);
+	currencyText.setPosition(
+		this->shopPanel.getPosition().x + (this->shopPanel.getSize().x - currencyText.getLocalBounds().width) / 2.f,
+		this->shopPanel.getPosition().y + 70.f
+	);
+	target.draw(currencyText);
+
+	// Draw close instruction
+	sf::Text closeText;
+	closeText.setFont(this->font);
+	closeText.setString("Press ESC to close shop");
+	closeText.setCharacterSize(18);
+	closeText.setFillColor(sf::Color(200, 200, 200));
+
+	sf::FloatRect closeBounds = closeText.getLocalBounds();
+	closeText.setOrigin(closeBounds.width / 2, closeBounds.height / 2);
+	closeText.setPosition(
+		this->shopPanel.getPosition().x + this->shopPanel.getSize().x / 2.f,
+		this->shopPanel.getPosition().y + this->shopPanel.getSize().y - 30.f
+	);
+	target.draw(closeText);
+
+	// Ensure text visibility (called last to override any previous settings)
+	this->freezeButtonText.setFillColor(sf::Color::White);
+	this->freezePrice.setFillColor(showingPurchaseFeedback ? sf::Color::White : sf::Color::Yellow);
+}
+
+void Game::pollEvents()
+{
+	while (this->window->pollEvent(this->ev))
+	{
+		switch (this->ev.type)
+		{
+		case sf::Event::Closed:
+			this->window->close();
+			break;
+
+		case sf::Event::KeyPressed:
+			if (this->ev.key.code == sf::Keyboard::Escape)
+			{
+				if (this->gameState == GAME)
+				{
+					this->isPaused = !this->isPaused;
+				}
+				else if (this->gameState == MENU && this->shopOpen)
+				{
+					this->shopOpen = false;
+				}
+			}
+			break;
+
+		case sf::Event::MouseButtonPressed:
+			if (this->ev.mouseButton.button == sf::Mouse::Left)
+			{
+				this->mouseHeld = true;
+
+				if (this->gameState == MENU)
+				{
+					if (!this->shopOpen)
+					{
+						if (this->startButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							// Start game logic...
+							this->gameState = GAME;
+							this->isPaused = false;
+							this->endGame = false;
+							this->health = 20;
+							this->points = 0;
+							this->shotsFired = 0;
+							this->shotsHit = 0;
+							this->accuracy = 0.f;
+							this->freezeActive = false;
+							this->freezeTimer = 0.f;
+							this->enemies.clear();
+							this->healthBlocks.clear();
+						}
+						else if (this->shopButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							this->shopOpen = true;
+						}
+						else if (this->exitButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							this->window->close();
+						}
+					}
+					else if (this->shopOpen)
+					{
+						if (this->freezeButton.getGlobalBounds().contains(this->mousePosView) &&
+							this->currency >= FREEZE_COST)
+						{
+							this->currency -= FREEZE_COST;
+							this->freezeCharges++;
+							this->showingPurchaseFeedback = true;
+							this->purchaseFeedbackClock.restart();
+							saveGameState();
+						}
+					}
+				}
+				else if (this->gameState == GAME)
+				{
+					if (this->isPaused)
+					{
+						if (this->resumeButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							this->isPaused = false;
+						}
+						else if (this->exitButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							saveGameState();
+							this->window->close();
+						}
+					}
+					else
+					{
+						// First check UI buttons
+						if (this->pauseButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							this->isPaused = true;
+						}
+						else if (this->freezeCharges > 0 &&
+							!this->freezeActive &&
+							this->freezeAbilityButton.getGlobalBounds().contains(this->mousePosView))
+						{
+							this->freezeActive = true;
+							this->freezeCharges--;
+							this->freezeTimer = this->freezeDuration;
+						}
+						else
+						{
+							// If no UI button was clicked, handle game object clicks
+							this->handleGameObjectClicks();
+						}
+					}
+				}
+			}
+			break;
+
+		case sf::Event::MouseButtonReleased:
+			if (this->ev.mouseButton.button == sf::Mouse::Left)
+				this->mouseHeld = false;
+			break;
+		}
+	}
+}
+void Game::saveGameState()
+{
+	std::ofstream outFile("savegame.txt");
+	if (outFile.is_open())
+	{
+		outFile << this->highScore << " "
+			<< this->bestAccuracy << " "
+			<< this->currency << " "
+			<< (this->hasFreezeAbility ? 1 : 0);
+		outFile.close();
+	}
+}
+
+void Game::updateMousePositions()
+{
+	/**
+	@ return void
+
+	Updates the mouse positions:
+		- Mouse position realtive to window (Vector2i)
+	*/
+
+	this->mousePosWindow = sf::Mouse::getPosition(*this->window);
+	this->mousePosView = this->window->mapPixelToCoords(this->mousePosWindow);
+}
+
+void Game::update()
+{
+	this->pollEvents();
+	this->updateMousePositions(); // Always update for button interaction
+
+	if (this->gameState == MENU)
+	{
+		// Nothing special to update for menu
+	}
+	else if (this->gameState == GAME && !this->isPaused && !this->endGame)
+	{
+		this->updateText();
+		this->updateEnemies();
+		this->updatePowerups(); // Update powerup timers
+
+		if (this->health <= 0)
+		{
+			this->endGame = true;
+
+			if (this->accuracy > this->bestAccuracy)
+				this->bestAccuracy = this->accuracy;
+
+			if (this->points > this->highScore)
+				this->highScore = this->points;
+
+
+			// Save all data including currency and powerups
+			std::ofstream outFile("savegame.txt");
+			if (outFile.is_open())
+			{
+				outFile << this->highScore << " " << this->bestAccuracy << " "
+					<< this->currency << " " << (this->hasFreezeAbility ? 1 : 0);
+				outFile.close();
+			}
+		}
+	}
+	// Handle purchase feedback
+	if (showingPurchaseFeedback &&
+		purchaseFeedbackClock.getElapsedTime().asSeconds() > FEEDBACK_DURATION)
+	{
+		showingPurchaseFeedback = false;
+	}
+
 }
 
 void Game::render()
@@ -690,6 +834,9 @@ void Game::render()
 	}
 	else if (this->gameState == GAME)
 	{
+		// Update UI information first
+		this->updateUI();
+
 		// Always render game elements
 		this->renderEnemies(*this->window);
 		this->window->draw(this->accuracyBarBack);
@@ -700,15 +847,44 @@ void Game::render()
 		this->window->draw(this->pauseButton);
 		this->window->draw(this->pauseButtonText);
 
+		// Draw freeze ability button if player has purchased it
+		if (this->hasFreezeAbility) {
+			this->window->draw(this->freezeAbilityButton);
+			this->window->draw(this->freezeAbilityButtonText);
+		}
 
+		// Draw freeze effect indicator if active
+		if (this->freezeActive) {
+			// Draw a blue semi-transparent overlay on screen edges to indicate freeze
+			sf::RectangleShape freezeIndicator;
+			freezeIndicator.setSize(sf::Vector2f(this->videoMode.width, 10.f));
+			freezeIndicator.setFillColor(sf::Color(100, 100, 255, 150));
 
-		// Draw pause menu if paused (ESC or pause button)
+			// Top edge
+			freezeIndicator.setPosition(0.f, 0.f);
+			this->window->draw(freezeIndicator);
+
+			// Bottom edge
+			freezeIndicator.setPosition(0.f, this->videoMode.height - 10.f);
+			this->window->draw(freezeIndicator);
+
+			// Left edge (vertical)
+			freezeIndicator.setSize(sf::Vector2f(10.f, this->videoMode.height));
+			freezeIndicator.setPosition(0.f, 0.f);
+			this->window->draw(freezeIndicator);
+
+			// Right edge (vertical)
+			freezeIndicator.setPosition(this->videoMode.width - 10.f, 0.f);
+			this->window->draw(freezeIndicator);
+		}
+
+		// Draw pause menu if paused
 		if (this->isPaused)
 		{
 			// Draw semi-transparent overlay
 			this->window->draw(this->pauseOverlay);
 
-			// Draw "Paused" text (centered near top of screen)
+			// Draw "Paused" text
 			sf::Text pausedText;
 			pausedText.setFont(this->font);
 			pausedText.setString("Paused");
@@ -719,15 +895,15 @@ void Game::render()
 			pausedText.setOrigin(textBounds.width / 2.f, textBounds.height / 2.f);
 			pausedText.setPosition(
 				this->videoMode.width / 2.f,
-				this->videoMode.height / 3.f  // Higher up on screen
+				this->videoMode.height / 3.f
 			);
 			this->window->draw(pausedText);
 
-			// Draw exit button (centered below "Paused" text)
+			// Draw exit button
 			this->window->draw(this->exitButton);
 			this->window->draw(this->exitButtonText);
 
-			// Draw resume button (centered below exit button) - optional if you want to keep it
+			// Draw resume button
 			this->window->draw(this->resumeButton);
 			this->window->draw(this->resumeButtonText);
 		}
@@ -735,4 +911,280 @@ void Game::render()
 
 	// Display the final frame
 	this->window->display();
+}
+
+//Accessors
+
+bool Game::getWindowIsOpen() const
+{
+	return this->window->isOpen();
+}
+
+bool Game::getEndGame() const
+{
+	return this->endGame;
+}
+
+void Game::loadGameData()
+{
+	std::ifstream inFile("savegame.txt");
+	if (inFile.is_open())
+	{
+		int hasFreeze = 0;
+		inFile >> this->highScore >> this->bestAccuracy
+			>> this->currency >> hasFreeze;
+		this->hasFreezeAbility = (hasFreeze == 1);
+		inFile.close();
+	}
+	else
+	{
+		loadHighscore();
+	}
+
+	// Update shop UI if we already have the freeze ability
+	if (this->hasFreezeAbility) {
+		this->freezeButton.setFillColor(sf::Color(50, 50, 120));
+		this->freezeButtonText.setString("PURCHASED");
+		this->freezePrice.setString("OWNED");
+		this->freezePrice.setFillColor(sf::Color::Green);
+		centerText(this->freezeButtonText, this->freezeButton, 0.f, 0.f);
+	}
+}
+
+void Game::loadHighscore()
+{
+	std::ifstream inFile("highscore.txt");
+	if (inFile.is_open())
+	{
+		std::string line;
+		if (std::getline(inFile, line)) {
+			std::istringstream iss(line);
+			if (!(iss >> this->highScore >> this->bestAccuracy)) {
+				this->highScore = 0;
+				this->bestAccuracy = 0.f;
+			}
+		}
+		inFile.close();
+	}
+	else
+	{
+		// Create default file
+		std::ofstream outFile("highscore.txt");
+		if (outFile.is_open()) {
+			outFile << "0 0";
+			outFile.close();
+		}
+	}
+}
+
+void Game::initPauseMenu()
+{
+	// Pause overlay
+	this->pauseOverlay.setSize(sf::Vector2f(this->videoMode.width, this->videoMode.height));
+	this->pauseOverlay.setFillColor(sf::Color(0, 0, 0, 150));
+
+	// Pause button
+	this->pauseButton.setSize(sf::Vector2f(100.f, 50.f));
+	this->pauseButton.setFillColor(sf::Color(100, 100, 255));
+	this->pauseButton.setPosition(this->videoMode.width - 120.f, 20.f);
+
+	this->pauseButtonText.setFont(this->font);
+	this->pauseButtonText.setString("Pause");
+	this->pauseButtonText.setCharacterSize(30);
+	this->pauseButtonText.setFillColor(sf::Color::White);
+	centerText(this->pauseButtonText, this->pauseButton);
+
+	// Exit button
+	this->exitButton.setSize(sf::Vector2f(200.f, 50.f));
+	this->exitButton.setFillColor(sf::Color(255, 0, 0));
+	this->exitButton.setPosition(
+		(this->videoMode.width - 200.f) / 2.f,
+		(this->videoMode.height - 50.f) / 2.f
+	);
+
+	this->exitButtonText.setFont(this->font);
+	this->exitButtonText.setString("Exit");
+	this->exitButtonText.setCharacterSize(32);
+	this->exitButtonText.setFillColor(sf::Color::White);
+	centerText(this->exitButtonText, this->exitButton);
+
+	// Resume button
+	this->resumeButton.setSize(sf::Vector2f(200.f, 50.f));
+	this->resumeButton.setFillColor(sf::Color(0, 255, 0));
+	this->resumeButton.setPosition(
+		this->exitButton.getPosition().x,
+		this->exitButton.getPosition().y - 70.f
+	);
+
+	this->resumeButtonText.setFont(this->font);
+	this->resumeButtonText.setString("Resume");
+	this->resumeButtonText.setCharacterSize(32);
+	this->resumeButtonText.setFillColor(sf::Color::White);
+	centerText(this->resumeButtonText, this->resumeButton);
+}
+
+void Game::initGameUI()
+{
+	// Accuracy bar
+	this->accuracyBarBack.setSize(sf::Vector2f(200.f, 20.f));
+	this->accuracyBarBack.setFillColor(sf::Color(50, 50, 50, 200));
+	this->accuracyBarBack.setPosition(0.f, 180.f);
+
+	// Accuracy bar foreground
+	this->accuracyBar.setSize(sf::Vector2f(0.f, 20.f)); // Start empty
+	this->accuracyBar.setFillColor(sf::Color::Green);
+	this->accuracyBar.setPosition(0.f, 180.f);
+
+	// Game text
+	this->uiText.setFont(this->font);
+	this->uiText.setCharacterSize(24);
+	this->uiText.setFillColor(sf::Color::White);
+	this->uiText.setString("");
+	this->uiText.setPosition(10.f, 10.f);
+
+	// Enemy
+	this->enemy.setSize(sf::Vector2f(100.f, 100.f));
+	this->enemy.setFillColor(sf::Color::Cyan);
+	this->enemy.setPosition(0.f, 0.f);
+
+	// Add freeze ability button initialization
+	/*
+	this->freezeAbilityButton.setSize(sf::Vector2f(100.f, 50.f));
+	this->freezeAbilityButton.setFillColor(sf::Color(100, 100, 255));
+	this->freezeAbilityButton.setPosition(20.f, 220.f);
+
+	this->freezeAbilityButtonText.setFont(this->font);
+	this->freezeAbilityButtonText.setString("FREEZE");
+	this->freezeAbilityButtonText.setCharacterSize(20);
+	this->freezeAbilityButtonText.setFillColor(sf::Color::White);
+	centerText(this->freezeAbilityButtonText, this->freezeAbilityButton);
+	*/
+}
+
+void Game::initMenuUI()
+{
+	// Start button
+	this->startButton.setSize(sf::Vector2f(200.f, 60.f));
+	this->startButton.setFillColor(sf::Color(100, 100, 255));
+	this->startButton.setPosition(
+		this->videoMode.width / 2.f - this->startButton.getSize().x / 2.f,
+		this->videoMode.height / 2.f - this->startButton.getSize().y / 2.f
+	);
+
+	this->startButtonText.setFont(this->font);
+	this->startButtonText.setString("START");
+	this->startButtonText.setCharacterSize(28);
+	this->startButtonText.setFillColor(sf::Color::White);
+	centerText(this->startButtonText, this->startButton, 0.f, -5.f);
+	// Shop button (added below start button)
+	this->shopButton.setSize(sf::Vector2f(200.f, 60.f));
+	this->shopButton.setFillColor(sf::Color(255, 165, 0)); // Orange color
+	this->shopButton.setPosition(
+		this->videoMode.width / 2.f - this->shopButton.getSize().x / 2.f,
+		this->startButton.getPosition().y + this->startButton.getSize().y + 20.f
+	);
+
+	this->shopButtonText.setFont(this->font);
+	this->shopButtonText.setString("SHOP");
+	this->shopButtonText.setCharacterSize(28);
+	this->shopButtonText.setFillColor(sf::Color::White);
+	centerText(this->shopButtonText, this->shopButton, 0.f, -5.f);
+	initShop();
+
+	// Exit Button (placed below shop button)
+	this->exitButton.setSize(sf::Vector2f(200.f, 60.f));
+	this->exitButton.setFillColor(sf::Color(255, 50, 50)); // Red color
+	this->exitButton.setPosition(
+		this->videoMode.width / 2.f - this->exitButton.getSize().x / 2.f,
+		this->shopButton.getPosition().y + this->shopButton.getSize().y + 20.f
+	);
+
+	this->exitButtonText.setFont(this->font);
+	this->exitButtonText.setString("EXIT");
+	this->exitButtonText.setCharacterSize(28);
+	this->exitButtonText.setFillColor(sf::Color::White);
+	centerText(this->exitButtonText, this->exitButton, 0.f, -5.f);
+}
+
+void Game::updatePowerups()
+{
+	if (this->freezeActive)
+	{
+		this->freezeTimer -= 1.f / 60.f; // Decrease by ~1/60th of a second (assumes 60fps)
+		if (this->freezeTimer <= 0.f)
+		{
+			this->freezeActive = false;
+			this->freezeTimer = 0.f;
+
+			// Reset freeze button text
+			if (this->hasFreezeAbility) {
+				this->freezeAbilityButtonText.setString("FREEZE");
+				centerText(this->freezeAbilityButtonText, this->freezeAbilityButton);
+			}
+		}
+	}
+}
+
+void Game::handleGameObjectClicks()
+{
+	bool clickedOnSomething = false;
+
+	// Check health blocks first
+	for (size_t i = 0; i < this->healthBlocks.size(); i++)
+	{
+		sf::FloatRect bounds = this->healthBlocks[i].getGlobalBounds();
+		// Expand hitbox more generously
+		bounds.left -= 10.f;
+		bounds.top -= 10.f;
+		bounds.width += 20.f;
+		bounds.height += 20.f;
+
+		if (bounds.contains(this->mousePosView))
+		{
+			this->health = std::min(this->health + 1, 20);
+			this->healthBlocks.erase(this->healthBlocks.begin() + i);
+			clickedOnSomething = true;
+			break;
+		}
+	}
+
+	// If we didn't click on a health block, check enemies
+	if (!clickedOnSomething)
+	{
+		this->shotsFired++;
+		for (size_t i = 0; i < this->enemies.size(); i++)
+		{
+			sf::FloatRect bounds = this->enemies[i].getGlobalBounds();
+			// Expand hitbox more generously
+			bounds.left -= 10.f;
+			bounds.top -= 10.f;
+			bounds.width += 20.f;
+			bounds.height += 20.f;
+
+			if (bounds.contains(this->mousePosView))
+			{
+				this->shotsHit++;
+
+				// Gain points based on the enemy color
+				int pointsEarned = 0;
+				if (this->enemies[i].getFillColor() == sf::Color::Magenta)
+					pointsEarned = 10;
+				else if (this->enemies[i].getFillColor() == sf::Color::Blue)
+					pointsEarned = 7;
+				else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
+					pointsEarned = 5;
+				else if (this->enemies[i].getFillColor() == sf::Color::Red)
+					pointsEarned = 3;
+				else if (this->enemies[i].getFillColor() == sf::Color::Green)
+					pointsEarned = 1;
+
+				this->points += pointsEarned;
+				this->currency += pointsEarned;
+
+				// Delete the enemy
+				this->enemies.erase(this->enemies.begin() + i);
+				break;
+			}
+		}
+	}
 }
