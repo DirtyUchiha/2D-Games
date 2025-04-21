@@ -111,24 +111,40 @@ void Game::initEnemies()
 //Functions
 void Game::spawnEnemy()
 {
-	//Randomize enemy type
-	int type = rand() % 6; // increase range to 6 to include health block
-	if (type == 5)
+	// Initialize random number generators (static to maintain state between calls)
+	static std::random_device rd;
+	static std::mt19937 gen(rd());
+	static std::uniform_int_distribution<> spawnDist(0, 99);  // For spawn chance (5%)
+	static std::uniform_int_distribution<> posDist(50, this->window->getSize().x - 80);  // For position (with margins)
+	static std::uniform_int_distribution<> typeDist(0, 4);    // For enemy types
+
+	// 5% chance to spawn health block (max 2 active)
+	if (spawnDist(gen) < 5 && healthBlocks.size() < 2)
 	{
-		// Health block
-		float blockSize = 30.f;
-		float x = static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - static_cast<int>(blockSize)));
+		float x = static_cast<float>(posDist(gen));
 
-		sf::RectangleShape healthBlock;
-		healthBlock.setSize(sf::Vector2f(30.f, 30.f));
-		healthBlock.setFillColor(sf::Color::White);
-		healthBlock.setPosition(x, 0.f);
+		// Check minimum distance from existing blocks (200px)
+		bool validPosition = true;
+		for (const auto& block : healthBlocks) {
+			if (std::abs(block.getPosition().x - x) < 200.f) {
+				validPosition = false;
+				break;
+			}
+		}
 
-		this->healthBlocks.push_back(healthBlock);
-		return; // Don't spawn a regular enemy this time
+		if (validPosition) {
+			sf::RectangleShape healthBlock;
+			healthBlock.setSize(sf::Vector2f(30.f, 30.f));
+			healthBlock.setFillColor(sf::Color::White);
+			healthBlock.setPosition(x, 0.f);
+			healthBlocks.push_back(healthBlock);
+			return;  // Skip normal enemy spawn
+		}
 	}
 
-	//set enemy type
+	// Normal enemy spawning
+	int type = typeDist(gen);  // Random enemy type (0-4)
+
 	switch (type)
 	{
 	case 0:
@@ -153,15 +169,13 @@ void Game::spawnEnemy()
 		break;
 	}
 
-	//Position the enemy within window bounds
+	// Random x-position within window bounds
 	float enemyWidth = this->enemy.getSize().x;
 	float x = static_cast<float>(rand() % static_cast<int>(this->window->getSize().x - static_cast<int>(enemyWidth)));
 	this->enemy.setPosition(x, 0.f);
 
 	this->enemies.push_back(this->enemy);
 }
-
-//Updated updateEnemies function with health block collision
 void Game::updateEnemies()
 {
 	// Updating the timer for enemy spawning
@@ -541,8 +555,8 @@ void Game::renderShop(sf::RenderTarget& target)
 		// Can't afford appearance (grayed out)
 		this->freezeButton.setFillColor(sf::Color(100, 100, 100));
 		this->freezeButtonText.setString(freezeCharges > 0 ?
-			"MORE CHARGES (" + std::to_string(freezeCharges) + ")" :
-			"BUY FREEZE");
+			"FREEZE POWER (" + std::to_string(freezeCharges) + ")" :
+			"FREEZE POWER");
 		this->freezePrice.setString(std::to_string(FREEZE_COST));
 	}
 	else
@@ -550,8 +564,8 @@ void Game::renderShop(sf::RenderTarget& target)
 		// Normal purchasable appearance (blue)
 		this->freezeButton.setFillColor(sf::Color(100, 100, 255));
 		this->freezeButtonText.setString(freezeCharges > 0 ?
-			"BUY MORE (" + std::to_string(freezeCharges) + ")" :
-			"BUY FREEZE");
+			"Freeze (" + std::to_string(freezeCharges) + ")" : //Text on freeze power up button
+			"FREEZE POWER");
 		this->freezePrice.setString(std::to_string(FREEZE_COST));
 	}
 

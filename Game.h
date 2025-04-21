@@ -11,6 +11,11 @@
 #include <iomanip>
 #include <ctime>
 #include <cstdlib>
+#include <random>
+#include <windows.h> // For GetUserName on Windows
+#include <shlobj.h> // For SHGetFolderPath
+#include <sstream>
+
 
 // Enum for Game State
 enum GameState { MENU, GAME, PAUSED };
@@ -46,6 +51,7 @@ private:
     float accuracy;
     float bestAccuracy;
     unsigned highScore;
+    const int MAX_RECENT_POSITIONS = 5;
 
     // Currency and powerups
     int currency;
@@ -56,7 +62,7 @@ private:
     float normalEnemySpeed;
     float frozenEnemySpeed;
     int freezeCharges;
-    const int FREEZE_COST = 10;
+    const int FREEZE_COST = 500;
     bool showingPurchaseFeedback;
     const float FEEDBACK_DURATION = .5f;
     bool freezeAbilityInitialized;
@@ -74,6 +80,7 @@ private:
     sf::RectangleShape enemy;
     std::vector<sf::RectangleShape> enemies;
     std::vector<sf::RectangleShape> healthBlocks;
+    std::vector<sf::Vector2f> recentHealthBlockPositions;
 
     // UI Elements
     sf::Font font;
@@ -125,7 +132,7 @@ private:
     void initFreezeButton();
     void loadGameData();
     void loadHighscore();
-    void saveGameState();  // Added this line
+    void saveGameState();
     void centerText(sf::Text& text, const sf::RectangleShape& shape, float xOffset = 0.f, float yOffset = 0.f);
 
     // Update functions
